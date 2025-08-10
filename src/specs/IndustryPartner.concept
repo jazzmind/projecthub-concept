@@ -1,0 +1,71 @@
+concept IndustryPartner
+
+purpose
+  represent people at organizations interested in sourcing projects for their companies
+
+state
+  IndustryPartner
+    id: ObjectId
+    name: String
+    email: String
+    title: String
+    organizationId: ObjectId
+    focusAreas: [String] // e.g., ["AI", "sustainability", "fintech"]
+    experienceLevel: "junior" | "mid" | "senior" | "executive"
+    contactPreferences: {
+      email: Boolean,
+      phone: Boolean,
+      linkedin: Boolean
+    }
+    linkedinUrl: String?
+    phoneNumber: String?
+    timezone: String
+    status: "active" | "inactive" | "prospective"
+    lastContactedAt: Date?
+    createdAt: Date
+    updatedAt: Date
+
+actions
+  create(name: String, email: String, title: String, organizationId: ObjectId, focusAreas: [String], experienceLevel: String, timezone: String) -> IndustryPartner | {error}
+    - create new industry partner
+    - validate organization exists
+    - validate email format and uniqueness
+    - return partner with generated id and timestamps
+
+  update(id: ObjectId, name: String?, title: String?, focusAreas: [String]?, experienceLevel: String?, contactPreferences: Object?, linkedinUrl: String?, phoneNumber: String?, timezone: String?) -> IndustryPartner | {error}
+    - update existing partner fields
+    - return updated partner
+
+  updateStatus(id: ObjectId, status: String) -> IndustryPartner | {error}
+    - update partner status
+    - return updated partner
+
+  recordContact(id: ObjectId) -> IndustryPartner | {error}
+    - update lastContactedAt to current timestamp
+    - return updated partner
+
+  delete(id: ObjectId) -> {success: Boolean} | {error}
+    - delete industry partner
+    - return success status
+
+queries
+  _getById(id: ObjectId) -> [IndustryPartner]
+    - return partner by id
+
+  _getByEmail(email: String) -> [IndustryPartner]
+    - return partner by email
+
+  _getByOrganization(organizationId: ObjectId) -> [IndustryPartner]
+    - return all partners for organization
+
+  _getByFocusArea(focusArea: String) -> [IndustryPartner]
+    - return partners with matching focus area
+
+  _getByStatus(status: String) -> [IndustryPartner]
+    - return partners with matching status
+
+  _getRecentlyContacted(days: Number) -> [IndustryPartner]
+    - return partners contacted within specified days
+
+operational principle
+  Industry partners represent the key contacts at companies who are interested in sourcing projects. They have specific focus areas and experience levels that help match them with appropriate projects. The system tracks their contact preferences and engagement history to optimize outreach.

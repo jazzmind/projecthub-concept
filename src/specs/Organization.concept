@@ -1,0 +1,51 @@
+concept Organization
+
+purpose
+  manage hierarchical organization structure for education and industry partners
+
+state
+  Organization
+    id: ObjectId
+    name: String
+    description: String
+    managingOrganizationId: ObjectId | null // null for top-level orgs
+    domain: String // company domain for industry partners
+    type: "education" | "industry" | "government" | "nonprofit"
+    contactEmail: String
+    website: String?
+    createdAt: Date
+    updatedAt: Date
+
+actions
+  create(name: String, description: String, managingOrganizationId: ObjectId?, type: String, domain: String, contactEmail: String, website: String?) -> Organization | {error}
+    - create new organization with unique domain
+    - if managingOrganizationId provided, validate it exists
+    - return organization with generated id and timestamps
+
+  update(id: ObjectId, name: String?, description: String?, contactEmail: String?, website: String?) -> Organization | {error}
+    - update existing organization fields
+    - cannot change managingOrganizationId after creation
+    - return updated organization
+
+  delete(id: ObjectId) -> {success: Boolean} | {error}
+    - delete organization if no child organizations exist
+    - return success status
+
+queries
+  _getById(id: ObjectId) -> [Organization]
+    - return organization by id
+
+  _getByDomain(domain: String) -> [Organization]
+    - return organization by domain
+
+  _getChildren(managingOrganizationId: ObjectId) -> [Organization]
+    - return all child organizations
+
+  _getTopLevel() -> [Organization]
+    - return all top-level organizations (managingOrganizationId is null)
+
+  _getAllByType(type: String) -> [Organization]
+    - return all organizations of specified type
+
+operational principle
+  Organizations form a hierarchical structure where top-level organizations (universities, companies) can have child organizations (faculties, departments). Each organization has a unique domain identifier and can be classified by type. Education partners create campaigns while industry partners participate in them.

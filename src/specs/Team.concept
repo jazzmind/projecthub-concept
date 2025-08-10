@@ -1,0 +1,144 @@
+concept Team
+
+purpose
+  organize students, experts, industry partners, and projects into collaborative teams for educational campaigns
+
+state
+  Team
+    id: ObjectId
+    name: String
+    description: String
+    campaignId: ObjectId // teams belong to campaigns
+    status: "forming" | "active" | "completed" | "archived"
+    maxStudents: Number // maximum students allowed
+    currentStudents: Number // current number of students
+    
+    # Team members
+    studentIds: [ObjectId] // assigned students
+    expertIds: [ObjectId] // optional expert mentors
+    industryPartnerIds: [ObjectId] // optional industry partners
+    projectIds: [ObjectId] // assigned projects
+    
+    # Team configuration
+    teamType: "student_only" | "with_expert" | "with_industry" | "full_collaboration"
+    isPublic: Boolean // can students join themselves
+    requiresApproval: Boolean // joining requires approval
+    
+    # Collaboration details
+    communicationChannels: Object? // {slack: String?, discord: String?, teams: String?}
+    meetingSchedule: String? // recurring meeting details
+    timezone: String?
+    
+    # Progress tracking
+    startDate: Date?
+    endDate: Date?
+    milestones: [Object]? // {title: String, dueDate: Date, completed: Boolean}
+    
+    createdAt: Date
+    updatedAt: Date
+
+actions
+  create(name: String, description: String, campaignId: ObjectId, maxStudents: Number, teamType: String, isPublic: Boolean, requiresApproval: Boolean) -> Team | {error}
+    - create new team for campaign
+    - validate campaign exists
+    - validate maxStudents is positive
+    - set status to "forming", currentStudents to 0
+    - return team with generated id and timestamps
+
+  addStudent(id: ObjectId, studentId: ObjectId) -> Team | {error}
+    - add student to team
+    - check if team has capacity (currentStudents < maxStudents)
+    - check if student is already in another team for same campaign
+    - increment currentStudents count
+    - return updated team
+
+  removeStudent(id: ObjectId, studentId: ObjectId) -> Team | {error}
+    - remove student from team
+    - decrement currentStudents count
+    - return updated team
+
+  addExpert(id: ObjectId, expertId: ObjectId) -> Team | {error}
+    - add expert mentor to team
+    - validate expert exists and is available
+    - return updated team
+
+  removeExpert(id: ObjectId, expertId: ObjectId) -> Team | {error}
+    - remove expert from team
+    - return updated team
+
+  addIndustryPartner(id: ObjectId, industryPartnerId: ObjectId) -> Team | {error}
+    - add industry partner to team
+    - validate industry partner exists
+    - return updated team
+
+  removeIndustryPartner(id: ObjectId, industryPartnerId: ObjectId) -> Team | {error}
+    - remove industry partner from team
+    - return updated team
+
+  assignProject(id: ObjectId, projectId: ObjectId) -> Team | {error}
+    - assign project to team
+    - validate project exists and is available
+    - return updated team
+
+  unassignProject(id: ObjectId, projectId: ObjectId) -> Team | {error}
+    - unassign project from team
+    - return updated team
+
+  updateStatus(id: ObjectId, status: String) -> Team | {error}
+    - update team status
+    - set startDate when status changes to "active"
+    - set endDate when status changes to "completed"
+    - return updated team
+
+  updateCommunication(id: ObjectId, channels: Object, meetingSchedule: String?, timezone: String?) -> Team | {error}
+    - update team communication settings
+    - return updated team
+
+  addMilestone(id: ObjectId, title: String, dueDate: Date) -> Team | {error}
+    - add milestone to team
+    - return updated team
+
+  completeMilestone(id: ObjectId, milestoneIndex: Number) -> Team | {error}
+    - mark milestone as completed
+    - return updated team
+
+  delete(id: ObjectId) -> {success: Boolean} | {error}
+    - delete team if status is "forming" or no active assignments
+    - return success status
+
+queries
+  _getById(id: ObjectId) -> [Team]
+    - return team by id
+
+  _getByCampaign(campaignId: ObjectId) -> [Team]
+    - return teams for campaign
+
+  _getByStudent(studentId: ObjectId) -> [Team]
+    - return teams containing student
+
+  _getByExpert(expertId: ObjectId) -> [Team]
+    - return teams with expert
+
+  _getByIndustryPartner(industryPartnerId: ObjectId) -> [Team]
+    - return teams with industry partner
+
+  _getByProject(projectId: ObjectId) -> [Team]
+    - return teams assigned to project
+
+  _getByStatus(status: String) -> [Team]
+    - return teams with specified status
+
+  _getAvailableTeams(campaignId: ObjectId) -> [Team]
+    - return teams with open spots (currentStudents < maxStudents)
+
+  _getPublicTeams(campaignId: ObjectId) -> [Team]
+    - return public teams students can join
+
+  _getActiveTeams() -> [Team]
+    - return teams with "active" status
+
+  _getTeamStats(id: ObjectId) -> [Object]
+    - return team statistics (completion rates, milestone progress, etc.)
+
+operational principle
+  Teams organize collaborative learning experiences within campaigns. Students can be directly assigned to teams or join public teams themselves. Experts and industry partners can mentor multiple teams, providing guidance and real-world perspective. Teams work on assigned projects with defined milestones and communication channels. The system tracks team composition, progress, and facilitates collaboration between different stakeholder types.
