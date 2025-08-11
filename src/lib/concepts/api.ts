@@ -33,8 +33,7 @@ export class APIConcept {
           body: input.body || undefined,
           params: input.params || undefined,
           query: input.query || undefined,
-          userId: input.userId || null,
-          sessionId: input.sessionId || null,
+          userId: input.userId || null
         }
       });
       
@@ -59,7 +58,7 @@ export class APIConcept {
       const response = await this.prisma.aPIResponse.create({
         data: {
           requestId: input.requestId,
-          status: input.status,
+          statusCode: input.status,
           headers: input.headers || {},
           body: input.body,
         }

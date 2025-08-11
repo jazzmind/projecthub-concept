@@ -60,7 +60,7 @@ The application is built using **Concept Design** - a modular approach where fun
 
 ### Frontend Stack
 - **Framework**: Next.js 15 App Router with server actions and API routes
-- **Styling**: Tailwind CSS v3 with custom component system
+- **Styling**: Tailwind CSS v4 with custom component system
 - **Authentication**: better-auth with email OTP verification
 - **UI Components**: Role-based navigation with organization context switching
 

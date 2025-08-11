@@ -3,8 +3,15 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { SessionUser } from '@/lib/auth';
 
+// Extended user type for client-side state
+type ExtendedUser = SessionUser & {
+  currentOrganizationId?: string;
+  organizationMemberships?: any[];
+  platformRole?: string;
+};
+
 interface AuthContextType {
-  user: SessionUser | null;
+  user: ExtendedUser | null;
   isLoading: boolean;
   currentOrganization: any | null;
   setCurrentOrganization: (org: any) => void;
@@ -15,7 +22,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<SessionUser | null>(null);
+  const [user, setUser] = useState<ExtendedUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentOrganization, setCurrentOrganizationState] = useState<any | null>(null);
 
@@ -66,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.ok) {
         setCurrentOrganizationState(org);
         // Update user object
-        setUser({ ...user, currentOrganizationId: org.id });
+        setUser((prevUser: ExtendedUser | null) => prevUser ? { ...prevUser, currentOrganizationId: org.id } : null);
       }
     } catch (error) {
       console.error('Failed to set current organization:', error);

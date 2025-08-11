@@ -9,6 +9,14 @@ import { ProjectConcept } from "@/lib/concepts/project";
 import { AssignmentConcept } from "@/lib/concepts/assignment";
 import { UserConcept } from "@/lib/concepts/user";
 
+// Import sync functions
+import { 
+  makeApiOrganizationSyncs,
+  makeApiTeamSyncs,
+  makeApiCampaignSyncs,
+  makeApiProjectSyncs
+} from "@/lib/syncs";
+
 // Initialize sync engine
 const Sync = new SyncConcept();
 
@@ -28,26 +36,24 @@ const concepts = {
 // Instrument for reactivity
 const { API, Organization, Campaign, Team, Expert, IndustryPartner, Project, Assignment, User } = Sync.instrument(concepts);
 
-// Create synchronizations using instrumented concepts
-const createApiCampaignSyncs = () => {
-  const { $vars } = require("@/lib/engine/vars");
-  const { request, campaignData } = $vars;
-  
-  return {
-    HandleCampaignCreate: ({ request, campaignData }: any) => ({
-      when: [
-        { action: API.request, input: { path: "/api/campaigns", method: "POST" }, output: { request } }
-      ],
-      where: (frames: any) => frames.map(($: any) => ({ ...$, [campaignData]: $[request].body })),
-      then: [
-        { action: Campaign.create, input: campaignData, output: {} }
-      ]
-    })
-  };
-};
+// Register synchronizations
+// TODO: Complete sync engine integration with proper pattern
+// The sync files are ready but need the engine to be properly configured
+// For now, we'll use direct API routes while keeping the sync architecture intact
+/*
+const organizationSyncs = makeApiOrganizationSyncs(API, Organization);
+const campaignSyncs = makeApiCampaignSyncs(API, Campaign);
+const projectSyncs = makeApiProjectSyncs(API, Project);
+const teamSyncs = makeApiTeamSyncs(API, Team);
 
-// For now, let's disable sync registration to test basic functionality
-// Sync.register(createApiCampaignSyncs());
+// Register all syncs with the engine
+Sync.register({
+  ...organizationSyncs,
+  ...campaignSyncs,
+  ...projectSyncs,
+  ...teamSyncs,
+});
+*/
 
 // Export for API routes and server actions
 export { API, Organization, Campaign, Team, Expert, IndustryPartner, Project, Assignment, User, Sync };

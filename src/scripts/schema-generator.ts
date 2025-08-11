@@ -318,6 +318,8 @@ datasource db {
 }
 
 // CLI usage
+// Commented out for Next.js compatibility - this file was designed for Deno
+/*
 if (import.meta.main) {
   const generator = new SchemaGenerator(
     '../specs',
@@ -335,3 +337,4 @@ if (import.meta.main) {
     console.log('Usage: deno run schema-generator.ts [generate|watch]');
   }
 }
+*/

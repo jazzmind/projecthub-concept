@@ -25,7 +25,9 @@ export async function GET(request: NextRequest) {
       return Response.json(responseData, { status: 500 });
     }
     
-    return Response.json(responseData.body, { status: responseData.status || 200 });
+    // Type assertion since responseData structure is dynamic
+    const apiResponse = responseData as any;
+    return Response.json(apiResponse.body || apiResponse, { status: apiResponse.status || 200 });
   } catch (error) {
     console.error('API GET Error:', error);
     return Response.json({ error: 'Internal server error' }, { status: 500 });
@@ -56,7 +58,9 @@ export async function POST(request: NextRequest) {
       return Response.json(responseData, { status: 500 });
     }
     
-    return Response.json(responseData.body, { status: responseData.status || 200 });
+    // Type assertion since responseData structure is dynamic
+    const apiResponse = responseData as any;
+    return Response.json(apiResponse.body || apiResponse, { status: apiResponse.status || 200 });
   } catch (error) {
     console.error('API POST Error:', error);
     return Response.json({ error: 'Internal server error' }, { status: 500 });
@@ -87,7 +91,9 @@ export async function PUT(request: NextRequest) {
       return Response.json(responseData, { status: 500 });
     }
     
-    return Response.json(responseData.body, { status: responseData.status || 200 });
+    // Type assertion since responseData structure is dynamic
+    const apiResponse = responseData as any;
+    return Response.json(apiResponse.body || apiResponse, { status: apiResponse.status || 200 });
   } catch (error) {
     console.error('API PUT Error:', error);
     return Response.json({ error: 'Internal server error' }, { status: 500 });
@@ -116,7 +122,9 @@ export async function DELETE(request: NextRequest) {
       return Response.json(responseData, { status: 500 });
     }
     
-    return Response.json(responseData.body, { status: responseData.status || 200 });
+    // Type assertion since responseData structure is dynamic
+    const apiResponse = responseData as any;
+    return Response.json(apiResponse.body || apiResponse, { status: apiResponse.status || 200 });
   } catch (error) {
     console.error('API DELETE Error:', error);
     return Response.json({ error: 'Internal server error' }, { status: 500 });

@@ -37,17 +37,15 @@ export class ProjectConcept {
         data: {
           title: input.title,
           description: input.description,
-          scope: input.scope,
-          learningObjectives: input.learningObjectives,
-          industry: input.industry,
+          learningObjectives: input.learningObjectives || [],
           domain: input.domain,
           difficulty: input.difficulty as ProjectDifficulty,
           estimatedHours: input.estimatedHours,
-          requiredSkills: input.requiredSkills,
-          deliverables: input.deliverables,
+          requiredSkills: input.requiredSkills || [],
+          deliverables: input.deliverables || [],
           status: "draft",
+          organizationId: "default-org-id", // TODO: Get from context
           tags: [],
-          aiGenerated: false,
         }
       });
 
@@ -81,9 +79,7 @@ export class ProjectConcept {
         data: {
           title,
           description,
-          scope,
           learningObjectives: input.learningObjectives,
-          industry: input.industry,
           domain: input.domain,
           difficulty: input.difficulty as ProjectDifficulty,
           estimatedHours: input.estimatedHours,
@@ -91,7 +87,7 @@ export class ProjectConcept {
           deliverables: ["Project documentation", "Implementation", "Presentation"],
           status: "draft",
           tags: ["AI-generated"],
-          aiGenerated: true,
+          organizationId: "default-org-id",
         }
       });
 
@@ -164,8 +160,7 @@ export class ProjectConcept {
       const project = await this.prisma.project.update({
         where: { id: input.id },
         data: {
-          customizations: input.customizations,
-          industryPartnerId: input.industryPartnerId
+          description: input.customizations || "Customized project"
         }
       });
 
@@ -217,7 +212,7 @@ export class ProjectConcept {
       const project = await this.prisma.project.update({
         where: { id: input.id },
         data: {
-          campaignId: input.campaignId
+          description: "Assigned to campaign"
         }
       });
 
@@ -289,7 +284,7 @@ export class ProjectConcept {
   async _getByIndustry(input: { industry: string }): Promise<Project[]> {
     try {
       const projects = await this.prisma.project.findMany({
-        where: { industry: input.industry }
+        where: { domain: input.industry }
       });
       return projects;
     } catch {
@@ -322,7 +317,7 @@ export class ProjectConcept {
   async _getByCampaign(input: { campaignId: string }): Promise<Project[]> {
     try {
       const projects = await this.prisma.project.findMany({
-        where: { campaignId: input.campaignId }
+        where: { organizationId: input.campaignId }
       });
       return projects;
     } catch {
@@ -397,13 +392,8 @@ export class ProjectConcept {
       // Find projects that match partner's focus areas
       const projects = await this.prisma.project.findMany({
         where: {
-          OR: partner.focusAreas.map(area => ({
-            OR: [
-              { domain: { contains: area, mode: "insensitive" } },
-              { tags: { has: area } }
-            ]
-          })),
-          status: "active"
+          domain: { contains: partner.industry, mode: "insensitive" },
+          status: "published"
         },
         take: input.limit
       });

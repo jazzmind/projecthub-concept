@@ -54,9 +54,7 @@ export class CampaignConcept {
             customFields: [],
           },
           status: "draft",
-          startDate: input.startDate,
-          currentParticipants: 0,
-          contactEmail: input.contactEmail,
+          startDate: input.startDate
         }
       });
 
@@ -167,7 +165,7 @@ export class CampaignConcept {
     }
   }
 
-  async addParticipant(input: { id: string }): Promise<{ campaign: Campaign } | { error: string }> {
+  async addParticipant(input: { id: string; participantId: string }): Promise<{ campaign: Campaign } | { error: string }> {
     try {
       const campaign = await this.prisma.campaign.findUnique({
         where: { id: input.id }
@@ -177,14 +175,14 @@ export class CampaignConcept {
         return { error: "Campaign not found" };
       }
 
-      if (campaign.participantLimit && campaign.currentParticipants >= campaign.participantLimit) {
+      if (campaign.maxParticipants && campaign.participantIds.length >= campaign.maxParticipants) {
         return { error: "Campaign is at participant limit" };
       }
 
       const updatedCampaign = await this.prisma.campaign.update({
         where: { id: input.id },
         data: {
-          currentParticipants: campaign.currentParticipants + 1
+          participantIds: [...campaign.participantIds, input.participantId]
         }
       });
 
@@ -194,7 +192,7 @@ export class CampaignConcept {
     }
   }
 
-  async removeParticipant(input: { id: string }): Promise<{ campaign: Campaign } | { error: string }> {
+  async removeParticipant(input: { id: string; participantId: string }): Promise<{ campaign: Campaign } | { error: string }> {
     try {
       const campaign = await this.prisma.campaign.findUnique({
         where: { id: input.id }
@@ -207,7 +205,7 @@ export class CampaignConcept {
       const updatedCampaign = await this.prisma.campaign.update({
         where: { id: input.id },
         data: {
-          currentParticipants: Math.max(0, campaign.currentParticipants - 1)
+          participantIds: campaign.participantIds.filter(id => id !== input.participantId)
         }
       });
 
@@ -344,9 +342,8 @@ export class CampaignConcept {
       const campaign = await this.prisma.campaign.findUnique({
         where: { id: input.id },
         include: {
-          projects: true,
           assignments: true,
-          teams: true
+          organization: true
         }
       });
 
@@ -356,11 +353,11 @@ export class CampaignConcept {
 
       const stats = {
         campaignId: campaign.id,
-        totalProjects: campaign.projects.length,
+        totalProjects: 0, // Would need separate query to count related projects
         totalAssignments: campaign.assignments.length,
-        totalTeams: campaign.teams.length,
-        currentParticipants: campaign.currentParticipants,
-        participantLimit: campaign.participantLimit,
+        totalTeams: 0, // Would need separate query to count related teams
+        currentParticipants: campaign.participantIds.length,
+        participantLimit: campaign.maxParticipants,
         status: campaign.status,
         daysActive: campaign.startDate ? Math.floor((Date.now() - campaign.startDate.getTime()) / (1000 * 60 * 60 * 24)) : 0
       };

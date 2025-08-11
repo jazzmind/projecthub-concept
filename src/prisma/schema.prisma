@@ -10,83 +10,327 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Request {
-  id        String    @id @default(cuid())
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+// Better-auth required models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
 
-  @@map("request")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("account")
 }
 
-model Response {
-  id        String    @id @default(cuid())
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("response")
+  @@map("session")
 }
 
-model Assignment {
-  id        String    @id @default(cuid())
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
 
-  @@map("assignment")
+  @@unique([identifier, token])
+  @@map("verification_token")
+}
+
+// Core Application Models
+
+enum UserPlatformRole {
+  admin
+  user
+}
+
+model User {
+  id                      String               @id @default(cuid())
+  email                   String               @unique
+  emailVerified           Boolean              @default(false)
+  name                    String
+  image                   String?
+  avatar                  String?
+  isEmailVerified         Boolean              @default(false)
+  lastLoginAt             DateTime?
+  organizationMemberships Json                 @default("[]")
+  currentOrganizationId   String?
+  platformRole            UserPlatformRole     @default(user)
+  isActive                Boolean              @default(true)
+  isSuspended             Boolean              @default(false)
+  suspendedAt             DateTime?
+  suspendedReason         String?
+  preferences             Json?
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+
+  // Better-auth relations
+  accounts               Account[]
+  sessions               Session[]
+  
+  // Organization relation
+  currentOrganization    Organization? @relation("CurrentOrganization", fields: [currentOrganizationId], references: [id])
+  organizations          Organization[] @relation("OrganizationMembers")
+
+  @@map("user")
+}
+
+model Organization {
+  id          String    @id @default(cuid())
+  name        String
+  domain      String?
+  type        String    @default("education")
+  description String?
+  website     String?
+  logoUrl     String?
+  settings    Json      @default("{}")
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  members     User[]    @relation("OrganizationMembers")
+  currentUsers User[]   @relation("CurrentOrganization")
+  campaigns   Campaign[]
+  teams       Team[]
+  projects    Project[]
+
+  @@map("organization")
+}
+
+enum CampaignStatus {
+  draft
+  active
+  paused
+  completed
+  archived
 }
 
 model Campaign {
-  id        String    @id @default(cuid())
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id                      String         @id @default(cuid())
+  name                    String
+  description             String
+  educationOrganizationId String
+  practeraExperienceId    String?
+  learningObjectives      String[]
+  industryConstraints     Json           @default("{}")
+  projectConstraints      Json           @default("{}")
+  landingPageConfig       Json           @default("{}")
+  participantIds          String[]       @default([])
+  status                  CampaignStatus @default(draft)
+  startDate               DateTime?
+  endDate                 DateTime?
+  maxParticipants         Int?
+  registrationDeadline    DateTime?
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [educationOrganizationId], references: [id])
+  assignments  Assignment[]
 
   @@map("campaign")
 }
 
+model Team {
+  id                   String   @id @default(cuid())
+  name                 String
+  organizationId       String
+  description          String?
+  studentIds           String[] @default([])
+  expertIds            String[] @default([])
+  industryPartnerIds   String[] @default([])
+  maxMembers           Int      @default(6)
+  isActive             Boolean  @default(true)
+  teamLead             String?
+  communicationChannel Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relations  
+  organization Organization @relation(fields: [organizationId], references: [id])
+  assignments  Assignment[]
+
+  @@map("team")
+}
+
 model Expert {
-  id        String    @id @default(cuid())
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id                 String   @id @default(cuid())
+  userId             String?
+  name               String
+  title              String?
+  company            String?
+  bio                String?
+  expertise          String[]
+  industries         String[]
+  availabilityHours  Int      @default(10)
+  hourlyRate         Float?
+  currency           String   @default("USD")
+  linkedinProfile    String?
+  portfolioUrl       String?
+  motivationStatement String?
+  relevantSkills     String[]
+  isAvailable        Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   @@map("expert")
 }
 
 model IndustryPartner {
-  id        String    @id @default(cuid())
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id                    String   @id @default(cuid())
+  companyName           String
+  industry              String
+  companySize           String
+  website               String?
+  description           String?
+  contactPersonName     String
+  contactPersonTitle    String
+  contactPersonEmail    String
+  contactPersonPhone    String?
+  address               Json?
+  experienceLevel       String
+  contactPreferences    Json     @default("{}")
+  engagementTypes       String[]
+  availableResources    String[]
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   @@map("industry_partner")
 }
 
-model Organization {
-  id        String    @id @default(cuid())
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+enum ProjectStatus {
+  draft
+  published
+  assigned
+  in_progress
+  completed
+  archived
+}
 
-  @@map("organization")
+enum ProjectDifficulty {
+  beginner
+  intermediate
+  advanced
 }
 
 model Project {
-  id        String    @id @default(cuid())
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id                   String            @id @default(cuid())
+  title                String
+  description          String
+  industryPartnerId    String?
+  expertId             String?
+  organizationId       String
+  domain               String
+  difficulty           ProjectDifficulty
+  estimatedHours       Int
+  requiredSkills       String[]
+  learningObjectives   String[]
+  deliverables         Json              @default("[]")
+  resources            Json              @default("[]")
+  status               ProjectStatus     @default(draft)
+  maxTeams             Int               @default(1)
+  applicationDeadline  DateTime?
+  startDate            DateTime?
+  endDate              DateTime?
+  milestones           Json              @default("[]")
+  isPublic             Boolean           @default(false)
+  tags                 String[]
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id])
+  assignments  Assignment[]
 
   @@map("project")
 }
 
-model Team {
-  id        String    @id @default(cuid())
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  @@map("team")
+enum AssignmentStatus {
+  pending
+  accepted
+  rejected
+  in_progress
+  submitted
+  completed
+  cancelled
 }
 
-model User {
-  id        String    @id @default(cuid())
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  @@map("user")
+enum AssignmentType {
+  direct
+  application
+  team_application
 }
 
+model Assignment {
+  id                     String           @id @default(cuid())
+  campaignId             String
+  projectId              String
+  studentId              String?
+  teamId                 String?
+  type                   AssignmentType
+  status                 AssignmentStatus @default(pending)
+  applicationMessage     String?
+  acceptedAt             DateTime?
+  startedAt              DateTime?
+  submittedAt            DateTime?
+  completedAt            DateTime?
+  studentFeedback        String?
+  partnerFeedback        String?
+  expertFeedback         String?
+  finalGrade             String?
+  deliverableSubmissions Json             @default("[]")
+  progressNotes          Json             @default("[]")
+  organizationId         String
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+
+  // Relations
+  campaign Campaign @relation(fields: [campaignId], references: [id])
+  project  Project  @relation(fields: [projectId], references: [id])
+  team     Team?    @relation(fields: [teamId], references: [id])
+
+  @@map("assignment")
+}
+
+model APIRequest {
+  id        String   @id @default(cuid())
+  method    String
+  path      String
+  body      Json?
+  params    Json?
+  query     Json?
+  headers   Json?
+  userId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("api_request")
+}
+
+model APIResponse {
+  id         String   @id @default(cuid())
+  requestId  String
+  statusCode Int
+  body       Json?
+  headers    Json?
+  error      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("api_response")
+}

@@ -1,109 +1,138 @@
-import { actions, Frames } from "@/lib/engine/mod";
-import { Vars } from "@/lib/engine/types";
+import { actions, Frames, Vars } from "@/lib/engine/mod";
 import { APIConcept } from "@/lib/concepts/api";
 import { ProjectConcept } from "@/lib/concepts/project";
 
-const API = new APIConcept();
-const Project = new ProjectConcept();
+export function makeApiProjectSyncs(
+  API: APIConcept,
+  Project: ProjectConcept,
+) {
+  // Handle project creation
+  const CreateProject = ({ 
+    request,
+    title,
+    description,
+    scope,
+    learningObjectives,
+    industry,
+    domain,
+    difficulty,
+    estimatedHours,
+    requiredSkills,
+    deliverables
+  }: Vars) => ({
+    when: actions(
+      [API.request as any, { 
+        method: "POST", 
+        path: "/api/projects",
+        title,
+        description,
+        scope,
+        learningObjectives,
+        industry,
+        domain,
+        difficulty,
+        estimatedHours,
+        requiredSkills,
+        deliverables
+      }, { request }],
+    ),
+    then: actions(
+      [Project.create as any, { 
+        title,
+        description,
+        scope,
+        learningObjectives,
+        industry,
+        domain,
+        difficulty,
+        estimatedHours,
+        requiredSkills,
+        deliverables
+      }],
+    ),
+  });
 
-// Handle project creation
-export const HandleProjectCreate = ({ request, projectData }: Vars) => ({
-  when: actions(
-    [API.request, { path: "/api/projects", method: "POST" }, { request }],
-  ),
-  where: (frames: Frames): Frames => {
-    return frames
-      .map(($) => ({
-        ...$,
-        [projectData]: $[request].body
-      }));
-  },
-  then: actions(
-    [Project.create, projectData, {}],
-  ),
-});
+  // Handle project creation response
+  const CreateProjectResponse = ({ 
+    request,
+    project,
+    payload
+  }: Vars) => ({
+    when: actions(
+      [API.request as any, { 
+        method: "POST", 
+        path: "/api/projects"
+      }, { request }],
+      [Project.create as any, {}, { project }],
+    ),
+    where: (frames: Frames) => {
+      const result = new Frames();
+      for (const frame of frames) {
+        result.push({
+          ...(frame as any),
+          [payload]: { project: (frame as any)[project] }
+        } as any);
+      }
+      return result;
+    },
+    then: actions(
+      [API.respond as any, { 
+        request,
+        output: (payload as unknown) as symbol
+      }],
+    ),
+  });
 
-// Handle AI project generation
-export const HandleProjectGenerate = ({ request, projectData }: Vars) => ({
-  when: actions(
-    [API.request, { path: "/api/projects/generate", method: "POST" }, { request }],
-  ),
-  where: (frames: Frames): Frames => {
-    return frames
-      .map(($) => ({
-        ...$,
-        [projectData]: $[request].body
-      }));
-  },
-  then: actions(
-    [Project.generateWithAI, projectData, {}],
-  ),
-});
+  // Handle project get by ID
+  const GetProject = ({ request, id, payload }: Vars) => ({
+    when: actions(
+      [API.request as any, { 
+        method: "GET", 
+        path: "/api/projects/:id",
+        id
+      }, { request }],
+    ),
+    where: (frames: Frames) => 
+      frames.query(Project._getById as any, { id }, { payload }),
+    then: actions(
+      [API.respond as any, { 
+        request,
+        output: (payload as unknown) as symbol
+      }],
+    ),
+  });
 
-// Handle project get by ID
-export const HandleProjectGetById = ({ request, projectId }: Vars) => ({
-  when: actions(
-    [API.request, { path: { startsWith: "/api/projects/" }, method: "GET" }, { request }],
-  ),
-  where: (frames: Frames): Frames => {
-    return frames
-      .map(($) => ({
-        ...$,
-        [projectId]: $[request].path.split('/').pop()
-      }))
-      .filter(($) => $[projectId] && $[request].path.split('/').length === 4);
-  },
-  then: actions(
-    [Project._getById, { id: projectId }, {}],
-  ),
-});
+  // Handle project list
+  const ListProjects = ({ request, payload }: Vars) => ({
+    when: actions(
+      [API.request as any, { 
+        method: "GET", 
+        path: "/api/projects"
+      }, { request }],
+    ),
+    where: (frames: Frames) => {
+      const result = new Frames();
+      for (const frame of frames) {
+        const projects = Project._getByStatus({ status: "published" });
+        result.push({
+          ...(frame as any),
+          [payload]: projects
+        } as any);
+      }
+      return result;
+    },
+    then: actions(
+      [API.respond as any, { 
+        request,
+        output: (payload as unknown) as symbol
+      }],
+    ),
+  });
 
-// Handle project list
-export const HandleProjectList = ({ request }: Vars) => ({
-  when: actions(
-    [API.request, { path: "/api/projects", method: "GET" }, { request }],
-  ),
-  where: (frames: Frames): Frames => {
-    return frames;
-  },
-  then: actions(
-    [Project._getByStatus, { status: "active" }, {}],
-  ),
-});
-
-// Send project responses
-export const SendProjectResponse = ({ request, result }: Vars) => ({
-  when: actions(
-    [Project.create, {}, { result }],
-    [Project.generateWithAI, {}, { result }],
-    [Project._getById, {}, { result }],
-    [Project._getByStatus, {}, { result }],
-  ),
-  where: (frames: Frames): Frames => {
-    return frames;
-  },
-  then: actions(
-    [API.respond, { 
-      requestId: request.id,
-      status: 200,
-      body: result
-    }, {}],
-  ),
-});
-
-export const SendProjectError = ({ request, error }: Vars) => ({
-  when: actions(
-    [Project.create, {}, { error }],
-    [Project.generateWithAI, {}, { error }],
-  ),
-  where: (frames: Frames): Frames => {
-    return frames;
-  },
-  then: actions(
-    [API.respond, { 
-      requestId: request.id,
-      status: 400,
-      body: { error }
-    }, {}],
-  ),
-});
+  return {
+    CreateProject,
+    CreateProjectResponse,
+    GetProject,
+    ListProjects,
+  } as const;
+}

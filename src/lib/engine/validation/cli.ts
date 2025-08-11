@@ -102,7 +102,7 @@ async function runValidation(options: CLIOptions): Promise<void> {
       console.log(`🔍 Validating concept: ${options.concept}`);
       // TODO: Implement single concept validation
       reports = await engine.validateAllConcepts();
-      reports = reports.filter(r => r.conceptName.toLowerCase() === options.concept.toLowerCase());
+      reports = reports.filter(r => r.conceptName.toLowerCase() === options.concept!.toLowerCase());
     } else {
       console.log('🔍 Validating all concepts...');
       reports = await engine.validateAllConcepts();

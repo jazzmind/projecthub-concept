@@ -71,9 +71,11 @@ class SchemaGenerator {
         });
       }
 
-      if (currentSection === 'state' && line.startsWith('    ') && currentEntity && line.includes(':')) {
+      // Use original line for field detection (before trimming)
+      const originalLine = content.split('\n')[i];
+      if (currentSection === 'state' && originalLine.startsWith('    ') && currentEntity && originalLine.includes(':')) {
         // This is a field definition (contains a colon and is indented)
-        const field = this.parseFieldDefinition(line.trim());
+        const field = this.parseFieldDefinition(originalLine.trim());
         if (field) {
           const entityIndex = concept.state.findIndex(s => s.name === currentEntity);
           if (entityIndex >= 0) {
@@ -117,6 +119,25 @@ class SchemaGenerator {
       array = true;
       type = type.slice(1, -1).trim();
     }
+    
+    // Handle complex array types like [Object] with comments - convert to Json[]
+    if (type.includes('#') && array) {
+      type = type.split('#')[0].trim();
+    }
+    
+    // Handle complex object types with comments - convert to Json
+    if (type.includes('#') && !array) {
+      type = type.split('#')[0].trim();
+      if (type.endsWith('?')) {
+        optional = true;
+        type = type.slice(0, -1).trim();
+      }
+    }
+    
+    // Handle nested object syntax like { field: Type, ... } - convert to Json
+    if (type.includes('{') || type.includes('}')) {
+      type = 'Object';
+    }
 
     // Handle enum definitions "value1" | "value2" | "value3"
     if (type.includes('|') && type.includes('"')) {
@@ -148,6 +169,7 @@ class SchemaGenerator {
       'Number': 'Int',
       'Float': 'Float', 
       'Boolean': 'Boolean',
+      'Flag': 'Boolean',
       'Date': 'DateTime',
       'ObjectId': 'String',
       'Object': 'Json',
@@ -155,6 +177,11 @@ class SchemaGenerator {
       '[Number]': 'Int[]',
       '[Object]': 'Json[]'
     };
+
+    // Handle complex types that weren't in the simple map
+    if (ssfType.includes('Number') && !typeMap[ssfType]) {
+      return ssfType.replace('Number', 'Int');
+    }
 
     return typeMap[ssfType] || ssfType;
   }
@@ -188,9 +215,12 @@ class SchemaGenerator {
 
         if (field.array) {
           fieldType += '[]';
+          // Arrays cannot be optional in Prisma, so convert optional arrays to non-optional
+          // This is a limitation we need to handle
         }
 
-        const optionalMarker = field.optional ? '?' : '';
+        // Arrays cannot be optional in Prisma
+        const optionalMarker = (field.optional && !field.array) ? '?' : '';
         const padding = ' '.repeat(Math.max(1, 12 - field.name.length));
         modelDef += `  ${field.name}${padding}${fieldType}${optionalMarker}\n`;
       }

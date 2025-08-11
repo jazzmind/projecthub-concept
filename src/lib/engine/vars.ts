@@ -12,7 +12,8 @@ export const $vars = new Proxy({} as Vars, {
 }) as Vars;
 
 // Destructuring binds new symbols with property names
-if (import.meta.main) {
-    const { user, post } = $vars;
-    console.log(user, post);
-}
+// Example usage (commented out for build)
+// if (typeof window === 'undefined') {
+//     const { user, post } = $vars;
+//     console.log(user, post);
+// }

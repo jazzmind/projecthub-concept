@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { auth } from '@/lib/auth';
+import { sendEmailOtp, verifyEmailOtp } from '@/lib/auth-client';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -18,13 +18,10 @@ export default function LoginPage() {
     setMessage('');
 
     try {
-      const { data, error } = await auth.emailOtp.sendOtp({
-        email,
-        type: 'sign-in',
-      });
+      const result = await sendEmailOtp(email, 'sign-in');
 
-      if (error) {
-        setMessage(error.message || 'Failed to send verification code');
+      if (result.error) {
+        setMessage(result.error.message || 'Failed to send verification code');
       } else {
         setStep('verify');
         setMessage('Verification code sent to your email');
@@ -42,13 +39,10 @@ export default function LoginPage() {
     setMessage('');
 
     try {
-      const { data, error } = await auth.emailOtp.verifyOtp({
-        email,
-        otp,
-      });
+      const result = await verifyEmailOtp(email, otp);
 
-      if (error) {
-        setMessage(error.message || 'Invalid verification code');
+      if (result.error) {
+        setMessage(result.error.message || 'Invalid verification code');
       } else {
         // Successful login
         router.push('/dashboard');

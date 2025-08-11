@@ -1,85 +1,145 @@
-import { actions, Frames } from "@/lib/engine/mod";
-import { Vars } from "@/lib/engine/types";
+import { actions, Frames, Vars } from "@/lib/engine/mod";
+import { APIConcept } from "@/lib/concepts/api";
+import { CampaignConcept } from "@/lib/concepts/campaign";
 
-// Handle campaign creation
-export const HandleCampaignCreate = ({ request, campaignData }: Vars) => ({
-  when: actions(
-    [API.request, { path: "/api/campaigns", method: "POST" }, { request }],
-  ),
-  where: (frames: Frames): Frames => {
-    return frames
-      .map(($) => ({
-        ...$,
-        [campaignData]: $[request].body
-      }));
-  },
-  then: actions(
-    [Campaign.create, campaignData, {}],
-  ),
-});
+export function makeApiCampaignSyncs(
+  API: APIConcept,
+  Campaign: CampaignConcept,
+) {
+  // Handle campaign creation
+  const CreateCampaign = ({ 
+    request, 
+    name, 
+    description, 
+    educationOrganizationId,
+    learningObjectives,
+    startDate,
+    contactEmail 
+  }: Vars) => ({
+    when: actions(
+      [API.request as any, { 
+        method: "POST", 
+        path: "/api/campaigns",
+        name,
+        description,
+        educationOrganizationId,
+        learningObjectives,
+        startDate,
+        contactEmail
+      }, { request }],
+    ),
+    then: actions(
+      [Campaign.create as any, { 
+        name,
+        description,
+        educationOrganizationId,
+        learningObjectives,
+        startDate,
+        contactEmail
+      }],
+    ),
+  });
 
-// Handle campaign get by ID
-export const HandleCampaignGetById = ({ request, campaignId }: Vars) => ({
-  when: actions(
-    [API.request, { path: { startsWith: "/api/campaigns/" }, method: "GET" }, { request }],
-  ),
-  where: (frames: Frames): Frames => {
-    return frames
-      .map(($) => ({
-        ...$,
-        [campaignId]: $[request].path.split('/').pop()
-      }))
-      .filter(($) => $[campaignId] && $[request].path.split('/').length === 4);
-  },
-  then: actions(
-    [Campaign._getById, { id: campaignId }, {}],
-  ),
-});
+  // Handle campaign creation response
+  const CreateCampaignResponse = ({ 
+    request,
+    name, 
+    description, 
+    educationOrganizationId,
+    learningObjectives,
+    startDate,
+    contactEmail,
+    campaign,
+    payload
+  }: Vars) => ({
+    when: actions(
+      [API.request as any, { 
+        method: "POST", 
+        path: "/api/campaigns",
+        name,
+        description,
+        educationOrganizationId,
+        learningObjectives,
+        startDate,
+        contactEmail
+      }, { request }],
+      [Campaign.create as any, { 
+        name,
+        description,
+        educationOrganizationId,
+        learningObjectives,
+        startDate,
+        contactEmail
+      }, { campaign }],
+    ),
+    where: (frames: Frames) => {
+      const result = new Frames();
+      for (const frame of frames) {
+        result.push({
+          ...(frame as any),
+          [payload]: { campaign: (frame as any)[campaign] }
+        } as any);
+      }
+      return result;
+    },
+    then: actions(
+      [API.respond as any, { 
+        request,
+        output: (payload as unknown) as symbol
+      }],
+    ),
+  });
 
-// Handle campaign list
-export const HandleCampaignList = ({ request }: Vars) => ({
-  when: actions(
-    [API.request, { path: "/api/campaigns", method: "GET" }, { request }],
-  ),
-  where: (frames: Frames): Frames => {
-    return frames;
-  },
-  then: actions(
-    [Campaign._getActive, {}, {}],
-  ),
-});
+  // Handle campaign get by ID
+  const GetCampaign = ({ request, id, payload }: Vars) => ({
+    when: actions(
+      [API.request as any, { 
+        method: "GET", 
+        path: "/api/campaigns/:id",
+        id
+      }, { request }],
+    ),
+    where: (frames: Frames) => 
+      frames.query(Campaign._getById as any, { id }, { payload }),
+    then: actions(
+      [API.respond as any, { 
+        request,
+        output: (payload as unknown) as symbol
+      }],
+    ),
+  });
 
-// Send campaign responses
-export const SendCampaignResponse = ({ request, result }: Vars) => ({
-  when: actions(
-    [Campaign.create, {}, { result }],
-    [Campaign._getById, {}, { result }],
-    [Campaign._getActive, {}, { result }],
-  ),
-  where: (frames: Frames): Frames => {
-    return frames;
-  },
-  then: actions(
-    [API.respond, { 
-      requestId: request.id,
-      status: 200,
-      body: result
-    }, {}],
-  ),
-});
+  // Handle campaign list
+  const ListCampaigns = ({ request, payload }: Vars) => ({
+    when: actions(
+      [API.request as any, { 
+        method: "GET", 
+        path: "/api/campaigns"
+      }, { request }],
+    ),
+    where: (frames: Frames) => {
+      const result = new Frames();
+      for (const frame of frames) {
+        const campaigns = Campaign._getActive();
+        result.push({
+          ...(frame as any),
+          [payload]: campaigns
+        } as any);
+      }
+      return result;
+    },
+    then: actions(
+      [API.respond as any, { 
+        request,
+        output: (payload as unknown) as symbol
+      }],
+    ),
+  });
 
-export const SendCampaignError = ({ request, error }: Vars) => ({
-  when: actions(
-    [Campaign.create, {}, { error }],
-  ),
-  where: (frames: Frames): Frames => {
-    return frames;
-  },
-  then: actions(
-    [API.respond, { 
-      requestId: request.id,
-      status: 400,
-      body: { error }
-    }, {}],
-  ),
-});
+  return {
+    CreateCampaign,
+    CreateCampaignResponse,
+    GetCampaign,
+    ListCampaigns,
+  } as const;
+}
