@@ -8,6 +8,7 @@ import { IndustryPartnerConcept } from "@/lib/concepts/industryPartner";
 import { ProjectConcept } from "@/lib/concepts/project";
 import { AssignmentConcept } from "@/lib/concepts/assignment";
 import { UserConcept } from "@/lib/concepts/user";
+import { NotificationConcept } from "@/lib/concepts/notification";
 
 // Initialize sync engine
 const Sync = new SyncConcept();
@@ -23,10 +24,11 @@ const concepts = {
   Project: new ProjectConcept(),
   Assignment: new AssignmentConcept(),
   User: new UserConcept(),
+  Notification: new NotificationConcept(),
 };
 
 // Instrument for reactivity
-const { API, Organization, Campaign, Team, Expert, IndustryPartner, Project, Assignment, User } = Sync.instrument(concepts);
+const { API, Organization, Campaign, Team, Expert, IndustryPartner, Project, Assignment, User, Notification } = Sync.instrument(concepts);
 
 // Create synchronizations using instrumented concepts
 const createApiCampaignSyncs = () => {
@@ -50,4 +52,4 @@ const createApiCampaignSyncs = () => {
 // Sync.register(createApiCampaignSyncs());
 
 // Export for API routes and server actions
-export { API, Organization, Campaign, Team, Expert, IndustryPartner, Project, Assignment, User, Sync };
+export { API, Organization, Campaign, Team, Expert, IndustryPartner, Project, Assignment, User, Notification, Sync };

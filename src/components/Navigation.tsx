@@ -2,6 +2,7 @@
 
 import { useAuth, useIsAdmin, useHasRole } from '@/lib/auth-context';
 import { useState } from 'react';
+import NotificationBell from '@/components/NotificationBell';
 
 export default function Navigation() {
   const { user, currentOrganization, logout, isLoading } = useAuth();
@@ -164,6 +165,9 @@ export default function Navigation() {
           </nav>
 
           <div className="flex items-center space-x-4">
+            {/* Notifications */}
+            <NotificationBell />
+            
             {/* User menu */}
             <div className="relative">
               <div className="flex items-center space-x-3">

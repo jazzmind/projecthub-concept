@@ -58,6 +58,22 @@ model IndustryPartner {
   @@map("industry_partner")
 }
 
+model Notification {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("notification")
+}
+
+model NotificationPreference {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("notification_preference")
+}
+
 model Organization {
   id        String    @id @default(cuid())
   createdAt DateTime  @default(now())

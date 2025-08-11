@@ -1,0 +1,132 @@
+concept Notification
+
+purpose
+  provide real-time notifications and activity feeds across all platform concepts
+
+state
+  Notification
+    id: ObjectId
+    userId: ObjectId
+    type: "welcome" | "assignment" | "project_assigned" | "team_invite" | "campaign_update" | "expert_feedback" | "application_status" | "system"
+    title: String
+    message: String
+    data: Object? # additional context data for the notification
+    
+    # Status and interaction
+    isRead: Flag
+    readAt: Date?
+    priority: "low" | "medium" | "high" | "urgent"
+    
+    # Source tracking
+    sourceConceptType: String? # "User", "Project", "Assignment", etc.
+    sourceEntityId: ObjectId? # ID of the entity that triggered this notification
+    
+    # Delivery options
+    channels: [String] # ["in_app", "email", "push"]
+    emailSent: Flag
+    emailSentAt: Date?
+    
+    # Organization context
+    organizationId: ObjectId?
+    
+    createdAt: Date
+    updatedAt: Date
+
+  NotificationPreference
+    id: ObjectId
+    userId: ObjectId
+    organizationId: ObjectId?
+    
+    # Channel preferences by notification type
+    emailEnabled: Flag
+    pushEnabled: Flag
+    inAppEnabled: Flag
+    
+    # Type-specific preferences
+    typePreferences: Object # {welcome: {email: true, push: false}, assignment: {email: true, push: true}, ...}
+    
+    # Quiet hours
+    quietHoursEnabled: Flag
+    quietHoursStart: String? # "22:00"
+    quietHoursEnd: String? # "08:00"
+    timezone: String?
+    
+    createdAt: Date
+    updatedAt: Date
+
+actions
+  create(userId: ObjectId, type: String, title: String, message: String, data: Object?, priority: String?, sourceConceptType: String?, sourceEntityId: ObjectId?, organizationId: ObjectId?) -> Notification | {error}
+    - create a new notification for a user
+    - validate notification type is valid
+    - set default priority to "medium" if not specified
+    - set default channels based on user preferences
+    - return notification with generated id
+
+  createBulk(userIds: [ObjectId], type: String, title: String, message: String, data: Object?, priority: String?, sourceConceptType: String?, sourceEntityId: ObjectId?, organizationId: ObjectId?) -> [Notification] | {error}
+    - create notifications for multiple users at once
+    - validate all user IDs exist
+    - create individual notifications for each user
+    - return array of created notifications
+
+  markAsRead(id: ObjectId, userId: ObjectId) -> Notification | {error}
+    - mark a notification as read
+    - validate notification belongs to the user
+    - set isRead=true and readAt=now
+    - return updated notification
+
+  markAllAsRead(userId: ObjectId, organizationId: ObjectId?) -> {success: Boolean, count: Number} | {error}
+    - mark all notifications as read for a user
+    - optionally scope to specific organization
+    - return count of notifications marked as read
+
+  delete(id: ObjectId, userId: ObjectId) -> {success: Boolean} | {error}
+    - delete a notification
+    - validate notification belongs to the user
+    - return success status
+
+  updatePreferences(userId: ObjectId, organizationId: ObjectId?, emailEnabled: Boolean?, pushEnabled: Boolean?, inAppEnabled: Boolean?, typePreferences: Object?, quietHoursEnabled: Boolean?, quietHoursStart: String?, quietHoursEnd: String?, timezone: String?) -> NotificationPreference | {error}
+    - update notification preferences for a user
+    - create preferences if they don't exist
+    - validate timezone format if provided
+    - return updated preferences
+
+  sendEmail(notificationId: ObjectId) -> {success: Boolean} | {error}
+    - send email notification if user has email enabled
+    - mark emailSent=true and emailSentAt=now
+    - return success status
+
+queries
+  _getByUser(userId: ObjectId, organizationId: ObjectId?, limit: Number?, offset: Number?) -> [Notification]
+    - return notifications for a user
+    - optionally filter by organization
+    - support pagination with limit/offset
+    - order by createdAt descending
+
+  _getUnreadByUser(userId: ObjectId, organizationId: ObjectId?) -> [Notification]
+    - return unread notifications for a user
+    - optionally filter by organization
+    - order by priority desc, createdAt desc
+
+  _getUnreadCount(userId: ObjectId, organizationId: ObjectId?) -> [Number]
+    - return count of unread notifications for a user
+    - optionally filter by organization
+
+  _getByType(userId: ObjectId, type: String, limit: Number?) -> [Notification]
+    - return notifications of specific type for a user
+    - order by createdAt descending
+
+  _getRecentActivity(organizationId: ObjectId, limit: Number?) -> [Notification]
+    - return recent notifications for an organization
+    - useful for activity feeds
+    - order by createdAt descending
+
+  _getUserPreferences(userId: ObjectId, organizationId: ObjectId?) -> [NotificationPreference]
+    - return notification preferences for a user
+    - optionally scoped to organization
+
+  _getPendingEmails() -> [Notification]
+    - return notifications that need email delivery
+    - filter for emailSent=false and email channel enabled
+
+operational principle
+  The notification system provides a unified way to communicate events across all concepts to users. When significant events occur (user creation, project assignment, team invitations), other concepts can trigger notifications without being coupled to notification logic. Users can customize their notification preferences and receive updates through multiple channels. The system supports real-time in-app notifications, email delivery, and future push notifications. All notifications are scoped to organizations when relevant, maintaining the platform's multi-tenant architecture.
