@@ -116,7 +116,3 @@ const response = await fetch('/api/users', {
 - Integration tests for API routes
 - End-to-end tests for complete user flows
 - Use `npm run api` for testing with auth bypass
-
-## Reference Files
-- [Next.js Stack Specification](rules/specs/stacks/nextjs/README.md)
-- [Next.js Concept Spec](rules/specs/stacks/nextjs/nextjs.concept)

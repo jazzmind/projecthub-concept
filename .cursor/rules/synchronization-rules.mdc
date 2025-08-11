@@ -71,4 +71,4 @@ const { Concept1, Concept2 } = Sync.instrument(concepts);
 - Test synchronizations with realistic data flows
 
 ## Reference Implementation
-See [Synchronization Implementation Guide](rules/docs/synchronization-implementation.md) for complete examples and patterns.
+See [Synchronization Implementation Guide](@docs/synchronization-implementation.md) for complete examples and patterns.

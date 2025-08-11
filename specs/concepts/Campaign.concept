@@ -1,0 +1,93 @@
+<concept_spec>
+
+concept Campaign
+
+purpose
+  manage educational campaigns that define learning experiences and participation rules
+
+state
+  a set of Campaigns with
+    a campaign String
+    a name String
+    a description String
+    a learningObjectives set of String
+    a startDate Date
+    an optional endDate Date
+    an optional maxParticipants Number
+    a participantIds set of String
+    an industryConstraints Object
+    a projectConstraints Object
+    a landingPageConfig Object
+    a status String
+    a contactEmail String
+    a createdAt Date
+    an updatedAt Date
+
+actions
+  create(campaign: String, name: String, description: String, learningObjectives: [String], startDate: Date, contactEmail: String) -> Campaign | {error}
+    - create new campaign
+    - set status to "draft", participantIds to empty set
+    - initialize default landing page config
+    - return campaign with generated id and timestamps
+
+  update(campaign: String, name: String?, description: String?, learningObjectives: [String]?, endDate: Date?, maxParticipants: Number?, contactEmail: String?) -> Campaign | {error}
+    - update existing campaign fields
+    - return updated campaign
+
+  updateConstraints(campaign: String, industryConstraints: Object?, projectConstraints: Object?) -> Campaign | {error}
+    - update campaign filtering constraints
+    - return updated campaign
+
+  updateLandingPage(campaign: String, landingPageConfig: Object) -> Campaign | {error}
+    - update landing page configuration
+    - return updated campaign
+
+  updateStatus(campaign: String, status: String) -> Campaign | {error}
+    - update campaign status
+    - validate status transition
+    - return updated campaign
+
+  addParticipant(campaign: String, participantId: String) -> Campaign | {error}
+    - add participant to campaign
+    - check against maxParticipants limit if set
+    - add to participantIds set
+    - return updated campaign
+
+  removeParticipant(campaign: String, participantId: String) -> Campaign | {error}
+    - remove participant from campaign
+    - remove from participantIds set
+    - return updated campaign
+
+  delete(campaign: String) -> {success: Boolean} | {error}
+    - delete campaign if status is "draft"
+    - return success status
+
+queries
+  _getByCampaign(campaign: String) -> [Campaign]
+    - return campaign by identifier
+
+  _getByStatus(status: String) -> [Campaign]
+    - return campaigns with specified status
+
+  _getActive() -> [Campaign]
+    - return active campaigns
+
+  _getByDateRange(startDate: Date, endDate: Date) -> [Campaign]
+    - return campaigns within date range
+
+  _searchByKeywords(keywords: [String]) -> [Campaign]
+    - return campaigns matching keywords in name or description
+
+  _getLandingPageConfig(campaign: String) -> [Object]
+    - return landing page configuration for campaign
+
+  _getParticipantCount(campaign: String) -> [Number]
+    - return current participant count
+
+  _hasCapacity(campaign: String) -> [Boolean]
+    - check if campaign can accept more participants
+
+operational principle
+  Campaigns define structured learning experiences with specific objectives and constraints. After create(campaign: "c1", name: "Spring Boot Course", ...) and addParticipant(campaign: "c1", participant: "user123"), then _getParticipantCount(campaign: "c1") returns 1.
+
+</concept_spec>
