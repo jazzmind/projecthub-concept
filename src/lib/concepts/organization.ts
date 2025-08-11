@@ -44,10 +44,12 @@ export class OrganizationConcept {
 
       const organization = await this.prisma.organization.create({
         data: {
+          organization: `org-${Date.now()}`, // Generic identifier
           name: input.name,
           description: input.description,
           domain: input.domain,
-          type: input.type || "education",
+          organizationType: input.type || "education",
+          contactEmail: input.contactEmail || input.name + "@" + input.domain,
           website: input.website,
         }
       });
@@ -129,7 +131,7 @@ export class OrganizationConcept {
   async _getChildren(input: { managingOrganizationId: string }): Promise<Organization[]> {
     try {
       const orgs = await this.prisma.organization.findMany({
-        where: { type: "education" } // Simplified - no hierarchy
+        where: { organizationType: "education" } // Simplified - no hierarchy
       });
       return orgs;
     } catch {
@@ -140,7 +142,7 @@ export class OrganizationConcept {
   async _getTopLevel(): Promise<Organization[]> {
     try {
       const orgs = await this.prisma.organization.findMany({
-        where: { type: "education" } // Simplified root org query
+        where: { organizationType: "education" } // Simplified root org query
       });
       return orgs;
     } catch {
@@ -151,7 +153,7 @@ export class OrganizationConcept {
   async _getAllByType(input: { type: string }): Promise<Organization[]> {
     try {
       const orgs = await this.prisma.organization.findMany({
-        where: { type: input.type }
+        where: { organizationType: input.type }
       });
       return orgs;
     } catch {

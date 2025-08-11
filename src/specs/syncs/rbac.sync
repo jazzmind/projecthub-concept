@@ -1,0 +1,148 @@
+<sync_spec>
+
+sync CreateRole
+when
+    API.request (method: "POST", path: "/api/roles", name: roleName, displayName: displayName, description: description, scope: scope, permissions: permissions) : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: context) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.roles.create = true
+then
+    Role.create (name: roleName, displayName: displayName, description: description, scope: scope, permissions: permissions)
+
+sync CreateRoleSuccess
+when
+    API.request (method: "POST", path: "/api/roles") : (request: request)
+    Role.create (name: roleName) : (role: role)
+then
+    API.respond (request: request, status: 201, body: {role: role})
+
+sync CreateRoleUnauthorized
+when
+    API.request (method: "POST", path: "/api/roles") : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: context) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.roles.create = false
+then
+    API.respond (request: request, status: 403, body: {error: "Insufficient permissions to create roles"})
+
+sync InviteMember
+when
+    API.request (method: "POST", path: "/api/memberships", memberEntity: memberEntity, targetEntity: targetEntity, roleEntity: roleEntity) : (request: request)
+where
+    API._getCurrentUser (request: request) : (inviterEntity: inviterEntity)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    targetEntity = context
+    Membership._getByMemberAndTarget (memberEntity: inviterEntity, targetEntity: context) : (inviterMembership: inviterMembership)
+    Role._getByName (name: inviterMembership.roleEntity) : (inviterRole: inviterRole)
+    inviterRole.permissions.memberships.create = true
+then
+    Membership.invite (memberEntity: memberEntity, targetEntity: targetEntity, roleEntity: roleEntity, invitedBy: inviterEntity)
+
+sync InviteMemberSuccess
+when
+    API.request (method: "POST", path: "/api/memberships") : (request: request)
+    Membership.invite (memberEntity: memberEntity, targetEntity: targetEntity, roleEntity: roleEntity, invitedBy: inviterEntity) : (membership: membership)
+then
+    API.respond (request: request, status: 201, body: {membership: membership})
+
+sync InviteMemberUnauthorized
+when
+    API.request (method: "POST", path: "/api/memberships") : (request: request)
+where
+    API._getCurrentUser (request: request) : (inviterEntity: inviterEntity)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: inviterEntity, targetEntity: context) : (inviterMembership: inviterMembership)
+    Role._getByName (name: inviterMembership.roleEntity) : (inviterRole: inviterRole)
+    inviterRole.permissions.memberships.create = false
+then
+    API.respond (request: request, status: 403, body: {error: "Insufficient permissions to invite members"})
+
+sync AcceptMembershipInvitation
+when
+    API.request (method: "POST", path: "/api/memberships/accept", memberEntity: memberEntity, targetEntity: targetEntity) : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    userId = memberEntity
+    Membership._getPendingInvitations (memberEntity: memberEntity) : (invitations: invitations)
+    invitations contains {memberEntity: memberEntity, targetEntity: targetEntity, status: "invited"}
+then
+    Membership.accept (memberEntity: memberEntity, targetEntity: targetEntity)
+
+sync AcceptMembershipSuccess
+when
+    API.request (method: "POST", path: "/api/memberships/accept") : (request: request)
+    Membership.accept (memberEntity: memberEntity, targetEntity: targetEntity) : (membership: membership)
+then
+    API.respond (request: request, status: 200, body: {membership: membership})
+
+sync RejectMembershipInvitation
+when
+    API.request (method: "POST", path: "/api/memberships/reject", memberEntity: memberEntity, targetEntity: targetEntity) : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    userId = memberEntity
+    Membership._getPendingInvitations (memberEntity: memberEntity) : (invitations: invitations)
+    invitations contains {memberEntity: memberEntity, targetEntity: targetEntity, status: "invited"}
+then
+    Membership.reject (memberEntity: memberEntity, targetEntity: targetEntity)
+
+sync UpdateMemberRole
+when
+    API.request (method: "PUT", path: "/api/memberships/role", memberEntity: memberEntity, targetEntity: targetEntity, roleEntity: newRoleEntity) : (request: request)
+where
+    API._getCurrentUser (request: request) : (updaterEntity: updaterEntity)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    targetEntity = context
+    Membership._getByMemberAndTarget (memberEntity: updaterEntity, targetEntity: context) : (updaterMembership: updaterMembership)
+    Role._getByName (name: updaterMembership.roleEntity) : (updaterRole: updaterRole)
+    updaterRole.permissions.memberships.update = true
+then
+    Membership.updateRole (memberEntity: memberEntity, targetEntity: targetEntity, roleEntity: newRoleEntity)
+
+sync UpdateMemberRoleSuccess
+when
+    API.request (method: "PUT", path: "/api/memberships/role") : (request: request)
+    Membership.updateRole (memberEntity: memberEntity, targetEntity: targetEntity, roleEntity: newRoleEntity) : (membership: membership)
+then
+    API.respond (request: request, status: 200, body: {membership: membership})
+
+sync SuspendMember
+when
+    API.request (method: "POST", path: "/api/memberships/suspend", memberEntity: memberEntity, targetEntity: targetEntity) : (request: request)
+where
+    API._getCurrentUser (request: request) : (suspenderEntity: suspenderEntity)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    targetEntity = context
+    Membership._getByMemberAndTarget (memberEntity: suspenderEntity, targetEntity: context) : (suspenderMembership: suspenderMembership)
+    Role._getByName (name: suspenderMembership.roleEntity) : (suspenderRole: suspenderRole)
+    suspenderRole.permissions.memberships.suspend = true
+then
+    Membership.suspend (memberEntity: memberEntity, targetEntity: targetEntity)
+
+sync LeaveMembership
+when
+    API.request (method: "POST", path: "/api/memberships/leave", targetEntity: targetEntity) : (request: request)
+where
+    API._getCurrentUser (request: request) : (memberEntity: memberEntity)
+    Membership._isActiveMember (memberEntity: memberEntity, targetEntity: targetEntity) : (isMember: true)
+then
+    Membership.leave (memberEntity: memberEntity, targetEntity: targetEntity)
+
+sync GetUserPermissions
+when
+    API.request (method: "GET", path: "/api/permissions") : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: context) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (role: role)
+then
+    API.respond (request: request, status: 200, body: {permissions: role.permissions, role: role.name, context: context})
+
+</sync_spec>

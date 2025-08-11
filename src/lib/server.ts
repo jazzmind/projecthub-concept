@@ -1,21 +1,26 @@
-import { SyncConcept } from "@/lib/engine/mod";
+import { SyncConcept } from "@sonnenreich/concept-design-engine";
 import { APIConcept } from "@/lib/concepts/api";
 import { OrganizationConcept } from "@/lib/concepts/organization";
 import { CampaignConcept } from "@/lib/concepts/campaign";
 import { TeamConcept } from "@/lib/concepts/team";
 import { ExpertConcept } from "@/lib/concepts/expert";
-import { IndustryPartnerConcept } from "@/lib/concepts/industryPartner";
 import { ProjectConcept } from "@/lib/concepts/project";
 import { AssignmentConcept } from "@/lib/concepts/assignment";
 import { UserConcept } from "@/lib/concepts/user";
+import { RoleConcept } from "@/lib/concepts/role";
+import { MembershipConcept } from "@/lib/concepts/membership";
+import { SessionConcept } from "@/lib/concepts/session";
 
 // Import sync functions
+// TODO: Update sync files to work with generic concepts
+/*
 import { 
   makeApiOrganizationSyncs,
   makeApiTeamSyncs,
   makeApiCampaignSyncs,
   makeApiProjectSyncs
 } from "@/lib/syncs";
+*/
 
 // Initialize sync engine
 const Sync = new SyncConcept();
@@ -27,14 +32,16 @@ const concepts = {
   Campaign: new CampaignConcept(),
   Team: new TeamConcept(),
   Expert: new ExpertConcept(),
-  IndustryPartner: new IndustryPartnerConcept(),
   Project: new ProjectConcept(),
   Assignment: new AssignmentConcept(),
   User: new UserConcept(),
+  Role: new RoleConcept(),
+  Membership: new MembershipConcept(),
+  Session: new SessionConcept(),
 };
 
 // Instrument for reactivity
-const { API, Organization, Campaign, Team, Expert, IndustryPartner, Project, Assignment, User } = Sync.instrument(concepts);
+const { API, Organization, Campaign, Team, Expert, Project, Assignment, User, Role, Membership, Session } = Sync.instrument(concepts);
 
 // Register synchronizations
 // TODO: Complete sync engine integration with proper pattern
@@ -56,4 +63,4 @@ Sync.register({
 */
 
 // Export for API routes and server actions
-export { API, Organization, Campaign, Team, Expert, IndustryPartner, Project, Assignment, User, Sync };
+export { API, Organization, Campaign, Team, Expert, Project, Assignment, User, Role, Membership, Session, Sync };

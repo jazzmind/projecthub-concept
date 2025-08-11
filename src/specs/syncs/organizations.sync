@@ -1,0 +1,172 @@
+<sync_spec>
+
+sync CreateOrganization
+when
+    API.request (method: "POST", path: "/api/organizations", name: name, description: description, domain: domain, organizationType: organizationType, contactEmail: contactEmail, website: website?, parentOrganization: parentOrganization?) : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: context) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.organizations.create = true
+then
+    Organization.create (organization: organizationId, name: name, description: description, domain: domain, organizationType: organizationType, contactEmail: contactEmail, website: website, parentOrganization: parentOrganization)
+
+sync CreateOrganizationSuccess
+when
+    API.request (method: "POST", path: "/api/organizations") : (request: request)
+    Organization.create (organization: organizationId) : (organization: organization)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+then
+    Role.create (name: "org_admin", displayName: "Organization Administrator", description: "Full administrative access to organization", scope: "context", permissions: organizationAdminPermissions)
+    Membership.invite (memberEntity: userId, targetEntity: organizationId, roleEntity: "org_admin", invitedBy: "system")
+    API.respond (request: request, status: 201, body: {organization: organization})
+
+sync CreateOrganizationAutoAcceptAdmin
+when
+    API.request (method: "POST", path: "/api/organizations") : (request: request)
+    Organization.create (organization: organizationId) : (organization: organization)
+    Membership.invite (memberEntity: userId, targetEntity: organizationId, roleEntity: "org_admin", invitedBy: "system") : (membership: membership)
+then
+    Membership.accept (memberEntity: userId, targetEntity: organizationId)
+
+sync CreateOrganizationUnauthorized
+when
+    API.request (method: "POST", path: "/api/organizations") : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: context) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.organizations.create = false
+then
+    API.respond (request: request, status: 403, body: {error: "Insufficient permissions to create organizations"})
+
+sync UpdateOrganization
+when
+    API.request (method: "PUT", path: "/api/organizations/:organizationId", name: name?, description: description?, contactEmail: contactEmail?, website: website?, settings: settings?) : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: organizationId) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.organizations.update = true
+then
+    Organization.update (organization: organizationId, name: name, description: description, contactEmail: contactEmail, website: website, settings: settings)
+
+sync UpdateOrganizationSuccess
+when
+    API.request (method: "PUT", path: "/api/organizations/:organizationId") : (request: request)
+    Organization.update (organization: organizationId) : (organization: organization)
+then
+    API.respond (request: request, status: 200, body: {organization: organization})
+
+sync ActivateOrganization
+when
+    API.request (method: "POST", path: "/api/organizations/:organizationId/activate") : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: context) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.organizations.activate = true
+then
+    Organization.activate (organization: organizationId)
+
+sync DeactivateOrganization
+when
+    API.request (method: "POST", path: "/api/organizations/:organizationId/deactivate") : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: context) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.organizations.deactivate = true
+then
+    Organization.deactivate (organization: organizationId)
+
+sync DeleteOrganization
+when
+    API.request (method: "DELETE", path: "/api/organizations/:organizationId") : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: context) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.organizations.delete = true
+then
+    Organization.delete (organization: organizationId)
+
+sync GetOrganization
+when
+    API.request (method: "GET", path: "/api/organizations/:organizationId") : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: organizationId) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.organizations.read = true
+    Organization._getByOrganization (organization: organizationId) : (organization: organization)
+then
+    API.respond (request: request, status: 200, body: {organization: organization})
+
+sync ListOrganizations
+when
+    API.request (method: "GET", path: "/api/organizations") : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: context) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.organizations.read = true
+    Organization._getActive () : (organizations: organizations)
+then
+    API.respond (request: request, status: 200, body: {organizations: organizations})
+
+sync GetOrganizationMembers
+when
+    API.request (method: "GET", path: "/api/organizations/:organizationId/members") : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: organizationId) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.organizations.read_members = true
+    Membership._getActiveByTarget (targetEntity: organizationId) : (memberships: memberships)
+then
+    API.respond (request: request, status: 200, body: {members: memberships})
+
+sync GetOrganizationChildren
+when
+    API.request (method: "GET", path: "/api/organizations/:organizationId/children") : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: organizationId) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.organizations.read = true
+    Organization._getChildren (parentOrganization: organizationId) : (children: children)
+then
+    API.respond (request: request, status: 200, body: {children: children})
+
+sync SearchOrganizations
+when
+    API.request (method: "GET", path: "/api/organizations/search", name: name) : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: context) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.organizations.read = true
+    Organization._searchByName (name: name) : (organizations: organizations)
+then
+    API.respond (request: request, status: 200, body: {organizations: organizations})
+
+</sync_spec>
+
+
+
+
+
+
+
+
+
+

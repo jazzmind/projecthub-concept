@@ -1,0 +1,194 @@
+<sync_spec>
+
+sync InitializePlatformRoles
+when
+    Organization.create (organization: platformId, name: "Platform", organizationType: "platform") : (organization: organization)
+then
+    Role.create (name: "platform_admin", displayName: "Platform Administrator", description: "Full platform administration", scope: "platform", permissions: platformAdminPermissions)
+    Role.create (name: "org_admin", displayName: "Organization Administrator", description: "Organization management", scope: "context", permissions: organizationAdminPermissions)
+    Role.create (name: "team_leader", displayName: "Team Leader", description: "Team leadership and management", scope: "context", permissions: teamLeaderPermissions)
+    Role.create (name: "team_member", displayName: "Team Member", description: "Basic team participation", scope: "context", permissions: teamMemberPermissions)
+    Role.create (name: "guest", displayName: "Guest", description: "Limited read-only access", scope: "context", permissions: guestPermissions)
+
+sync AssignProjectToTeam
+when
+    API.request (method: "POST", path: "/api/assignments/projects", projectId: projectId, teamId: teamId, dueDate: dueDate) : (request: request)
+where
+    API._getCurrentUser (request: request) : (assignerId: assignerId)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: assignerId, targetEntity: context) : (assignerMembership: assignerMembership)
+    Role._getByName (name: assignerMembership.roleEntity) : (assignerRole: assignerRole)
+    assignerRole.permissions.assignments.create = true
+    Project._getByProject (project: projectId) : (project: project)
+    project.status = "published"
+    Team._getByTeam (team: teamId) : (team: team)
+    team.status = "active"
+then
+    Assignment.createDirectAssignment (assignment: assignmentId, assignmentType: "project_assignment", sourceEntity: projectId, targetEntity: teamId, assignedBy: assignerId)
+
+sync AssignProjectToTeamSuccess
+when
+    API.request (method: "POST", path: "/api/assignments/projects") : (request: request)
+    Assignment.createDirectAssignment (assignment: assignmentId, assignmentType: "project_assignment") : (assignment: assignment)
+then
+    API.respond (request: request, status: 201, body: {assignment: assignment, message: "Project assigned to team successfully"})
+
+sync TeamAcceptsProjectAssignment
+when
+    API.request (method: "POST", path: "/api/assignments/:assignmentId/team-accept") : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Assignment._getByAssignment (assignment: assignmentId) : (assignment: assignment)
+    assignment.assignmentType = "project_assignment"
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: assignment.targetEntity) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.assignments.accept = true
+then
+    Assignment.accept (assignment: assignmentId)
+
+sync CreateCampaignWithProjectConstraints
+when
+    API.request (method: "POST", path: "/api/campaigns/with-projects", name: name, description: description, learningObjectives: learningObjectives, startDate: startDate, contactEmail: contactEmail, allowedProjects: allowedProjects) : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: context) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.campaigns.create = true
+then
+    Campaign.create (campaign: campaignId, name: name, description: description, learningObjectives: learningObjectives, startDate: startDate, contactEmail: contactEmail)
+
+sync UpdateCampaignWithProjectConstraints
+when
+    API.request (method: "POST", path: "/api/campaigns/with-projects") : (request: request)
+    Campaign.create (campaign: campaignId) : (campaign: campaign)
+where
+    allowedProjects is defined
+then
+    Campaign.updateConstraints (campaign: campaignId, projectConstraints: {allowedProjects: allowedProjects})
+
+sync UserRegistrationWithOrganizationInvite
+when
+    API.request (method: "POST", path: "/api/auth/register-with-org", email: email, name: name, organizationDomain: organizationDomain) : (request: request)
+where
+    Organization._getByDomain (domain: organizationDomain) : (organization: organization)
+    organization.isActive = true
+then
+    User.register (user: userIdentifier, email: email, name: name)
+
+sync AutoInviteToOrganization
+when
+    API.request (method: "POST", path: "/api/auth/register-with-org") : (request: request)
+    User.register (user: userIdentifier) : (user: user)
+where
+    Organization._getByDomain (domain: organizationDomain) : (organization: organization)
+then
+    Membership.invite (memberEntity: userIdentifier, targetEntity: organization.organization, roleEntity: "team_member", invitedBy: "system")
+
+sync AutoAcceptOrganizationMembership
+when
+    API.request (method: "POST", path: "/api/auth/register-with-org") : (request: request)
+    User.register (user: userIdentifier) : (user: user)
+    Membership.invite (memberEntity: userIdentifier, targetEntity: organizationId, roleEntity: "team_member") : (membership: membership)
+then
+    Membership.accept (memberEntity: userIdentifier, targetEntity: organizationId)
+    API.respond (request: request, status: 201, body: {user: user, message: "User registered and added to organization"})
+
+sync CreateTeamWithInitialProject
+when
+    API.request (method: "POST", path: "/api/teams/with-project", name: name, description: description, initialProjectId: initialProjectId) : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: context) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.teams.create = true
+    Project._getByProject (project: initialProjectId) : (project: project)
+    project.status = "published"
+then
+    Team.create (team: teamId, name: name, description: description)
+
+sync AssignInitialProjectToNewTeam
+when
+    API.request (method: "POST", path: "/api/teams/with-project") : (request: request)
+    Team.create (team: teamId) : (team: team)
+where
+    initialProjectId is defined
+    API._getCurrentUser (request: request) : (userId: userId)
+then
+    Membership.invite (memberEntity: userId, targetEntity: teamId, roleEntity: "team_leader", invitedBy: userId)
+    Assignment.createDirectAssignment (assignment: assignmentId, assignmentType: "project_assignment", sourceEntity: initialProjectId, targetEntity: teamId, assignedBy: userId)
+
+sync AutoAcceptTeamLeadership
+when
+    API.request (method: "POST", path: "/api/teams/with-project") : (request: request)
+    Team.create (team: teamId) : (team: team)
+    Membership.invite (memberEntity: userId, targetEntity: teamId, roleEntity: "team_leader") : (membership: membership)
+then
+    Membership.accept (memberEntity: userId, targetEntity: teamId)
+
+sync AutoAcceptInitialProjectAssignment
+when
+    API.request (method: "POST", path: "/api/teams/with-project") : (request: request)
+    Team.create (team: teamId) : (team: team)
+    Assignment.createDirectAssignment (assignment: assignmentId, assignmentType: "project_assignment") : (assignment: assignment)
+then
+    Assignment.accept (assignment: assignmentId)
+    API.respond (request: request, status: 201, body: {team: team, assignment: assignment, message: "Team created with initial project assignment"})
+
+sync PromoteMemberToTeamLeader
+when
+    API.request (method: "POST", path: "/api/teams/:teamId/promote", memberEntity: memberEntity) : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: teamId) : (promoterMembership: promoterMembership)
+    Role._getByName (name: promoterMembership.roleEntity) : (promoterRole: promoterRole)
+    promoterRole.permissions.teams.manage_roles = true
+    Membership._getByMemberAndTarget (memberEntity: memberEntity, targetEntity: teamId) : (memberMembership: memberMembership)
+    memberMembership.status = "active"
+then
+    Membership.updateRole (memberEntity: memberEntity, targetEntity: teamId, roleEntity: "team_leader")
+
+sync PromoteMemberSuccess
+when
+    API.request (method: "POST", path: "/api/teams/:teamId/promote") : (request: request)
+    Membership.updateRole (memberEntity: memberEntity, targetEntity: teamId, roleEntity: "team_leader") : (membership: membership)
+then
+    API.respond (request: request, status: 200, body: {membership: membership, message: "Member promoted to team leader"})
+
+sync CompleteProjectAssignmentWorkflow
+when
+    Assignment.complete (assignment: assignmentId) : (assignment: assignment)
+where
+    assignment.assignmentType = "project_assignment"
+    Assignment._getByAssignment (assignment: assignmentId) : (assignmentDetails: assignmentDetails)
+then
+    Assignment.addProgressNote (assignment: assignmentId, note: "Project assignment completed successfully", author: "system", noteType: "completion")
+
+sync NotifyProjectCompletion
+when
+    Assignment.complete (assignment: assignmentId) : (assignment: assignment)
+    Assignment.addProgressNote (assignment: assignmentId, note: completionNote, author: "system", noteType: "completion") : (progressNote: progressNote)
+where
+    assignment.assignmentType = "project_assignment"
+then
+    Assignment.addFeedback (assignment: assignmentId, author: assignment.assigner, rating: null, comment: "Project assignment workflow completed")
+
+sync CascadeOrganizationDeactivation
+when
+    Organization.deactivate (organization: organizationId) : (organization: organization)
+where
+    Membership._getActiveByTarget (targetEntity: organizationId) : (memberships: memberships)
+then
+    Membership.suspend (memberEntity: memberships[0].memberEntity, targetEntity: organizationId)
+
+sync RestoreOrganizationActivation
+when
+    Organization.activate (organization: organizationId) : (organization: organization)
+where
+    Membership._getByTarget (targetEntity: organizationId) : (memberships: memberships)
+    memberships[0].status = "suspended"
+then
+    Membership.reactivate (memberEntity: memberships[0].memberEntity, targetEntity: organizationId)
+
+</sync_spec>

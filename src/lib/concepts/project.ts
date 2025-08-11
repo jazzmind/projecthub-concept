@@ -1,4 +1,4 @@
-import { PrismaClient, Project, ProjectDifficulty, ProjectStatus } from "@prisma/client";
+import { PrismaClient, Project } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -10,6 +10,7 @@ export class ProjectConcept {
   }
 
   async create(input: {
+    project: string;
     title: string;
     description: string;
     scope: string;
@@ -22,30 +23,35 @@ export class ProjectConcept {
     deliverables: string[];
   }): Promise<{ project: Project } | { error: string }> {
     try {
-      // Validate difficulty
-      const validDifficulties = ["beginner", "intermediate", "advanced"];
-      if (!validDifficulties.includes(input.difficulty)) {
-        return { error: "Invalid difficulty level" };
+      // Validate required fields
+      if (!input.title || !input.description) {
+        return { error: "Title and description are required" };
       }
 
-      // Validate estimated hours
-      if (input.estimatedHours <= 0) {
-        return { error: "Estimated hours must be positive" };
+      // Check if project with this identifier already exists
+      const existingProject = await this.prisma.project.findFirst({
+        where: { project: input.project }
+      });
+      if (existingProject) {
+        return { error: "Project with this identifier already exists" };
       }
 
       const project = await this.prisma.project.create({
         data: {
+          project: input.project,
           title: input.title,
           description: input.description,
-          learningObjectives: input.learningObjectives || [],
+          scope: input.scope,
+          learningObjectives: input.learningObjectives,
+          industry: input.industry,
           domain: input.domain,
-          difficulty: input.difficulty as ProjectDifficulty,
+          difficulty: input.difficulty,
           estimatedHours: input.estimatedHours,
-          requiredSkills: input.requiredSkills || [],
-          deliverables: input.deliverables || [],
-          status: "draft",
-          organizationId: "default-org-id", // TODO: Get from context
+          requiredSkills: input.requiredSkills,
+          deliverables: input.deliverables,
+          status: "active",
           tags: [],
+          aiGenerated: false,
         }
       });
 
@@ -55,58 +61,19 @@ export class ProjectConcept {
     }
   }
 
-  async generateWithAI(input: {
-    industry: string;
-    domain: string;
-    learningObjectives: string[];
-    difficulty: string;
-    estimatedHours: number;
-  }): Promise<{ project: Project } | { error: string }> {
-    try {
-      // Validate difficulty
-      const validDifficulties = ["beginner", "intermediate", "advanced"];
-      if (!validDifficulties.includes(input.difficulty)) {
-        return { error: "Invalid difficulty level" };
-      }
-
-      // TODO: Implement AI generation with llamaindex
-      // For now, create a template project
-      const title = `AI-Generated ${input.domain} Project in ${input.industry}`;
-      const description = `This project focuses on ${input.domain} concepts within the ${input.industry} industry, designed to achieve the specified learning objectives.`;
-      const scope = `Students will work on a ${input.difficulty}-level project that takes approximately ${input.estimatedHours} hours to complete.`;
-
-      const project = await this.prisma.project.create({
-        data: {
-          title,
-          description,
-          learningObjectives: input.learningObjectives,
-          domain: input.domain,
-          difficulty: input.difficulty as ProjectDifficulty,
-          estimatedHours: input.estimatedHours,
-          requiredSkills: [],
-          deliverables: ["Project documentation", "Implementation", "Presentation"],
-          status: "draft",
-          tags: ["AI-generated"],
-          organizationId: "default-org-id",
-        }
-      });
-
-      return { project };
-    } catch (error) {
-      return { error: `Failed to generate project with AI: ${error}` };
-    }
-  }
-
   async update(input: {
-    id: string;
+    project: string;
     title?: string;
     description?: string;
     scope?: string;
     learningObjectives?: string[];
+    industry?: string;
+    domain?: string;
     difficulty?: string;
     estimatedHours?: number;
     requiredSkills?: string[];
     deliverables?: string[];
+    status?: string;
     tags?: string[];
   }): Promise<{ project: Project } | { error: string }> {
     try {
@@ -115,25 +82,17 @@ export class ProjectConcept {
       if (input.description !== undefined) updateData.description = input.description;
       if (input.scope !== undefined) updateData.scope = input.scope;
       if (input.learningObjectives !== undefined) updateData.learningObjectives = input.learningObjectives;
-      if (input.difficulty !== undefined) {
-        const validDifficulties = ["beginner", "intermediate", "advanced"];
-        if (!validDifficulties.includes(input.difficulty)) {
-          return { error: "Invalid difficulty level" };
-        }
-        updateData.difficulty = input.difficulty as ProjectDifficulty;
-      }
-      if (input.estimatedHours !== undefined) {
-        if (input.estimatedHours <= 0) {
-          return { error: "Estimated hours must be positive" };
-        }
-        updateData.estimatedHours = input.estimatedHours;
-      }
+      if (input.industry !== undefined) updateData.industry = input.industry;
+      if (input.domain !== undefined) updateData.domain = input.domain;
+      if (input.difficulty !== undefined) updateData.difficulty = input.difficulty;
+      if (input.estimatedHours !== undefined) updateData.estimatedHours = input.estimatedHours;
       if (input.requiredSkills !== undefined) updateData.requiredSkills = input.requiredSkills;
       if (input.deliverables !== undefined) updateData.deliverables = input.deliverables;
+      if (input.status !== undefined) updateData.status = input.status;
       if (input.tags !== undefined) updateData.tags = input.tags;
 
       const project = await this.prisma.project.update({
-        where: { id: input.id },
+        where: { project: input.project },
         data: updateData
       });
 
@@ -143,124 +102,10 @@ export class ProjectConcept {
     }
   }
 
-  async customize(input: {
-    id: string;
-    customizations: object;
-    industryPartnerId: string;
-  }): Promise<{ project: Project } | { error: string }> {
+  async delete(input: { project: string }): Promise<{ success: boolean } | { error: string }> {
     try {
-      // Validate industry partner exists
-      const partner = await this.prisma.industryPartner.findUnique({
-        where: { id: input.industryPartnerId }
-      });
-      if (!partner) {
-        return { error: "Industry partner not found" };
-      }
-
-      const project = await this.prisma.project.update({
-        where: { id: input.id },
-        data: {
-          description: input.customizations || "Customized project"
-        }
-      });
-
-      return { project };
-    } catch (error) {
-      return { error: `Failed to customize project: ${error}` };
-    }
-  }
-
-  async assignExpert(input: {
-    id: string;
-    expertId: string;
-  }): Promise<{ project: Project } | { error: string }> {
-    try {
-      // Validate expert exists
-      const expert = await this.prisma.expert.findUnique({
-        where: { id: input.expertId }
-      });
-      if (!expert) {
-        return { error: "Expert not found" };
-      }
-
-      const project = await this.prisma.project.update({
-        where: { id: input.id },
-        data: {
-          expertId: input.expertId
-        }
-      });
-
-      return { project };
-    } catch (error) {
-      return { error: `Failed to assign expert: ${error}` };
-    }
-  }
-
-  async assignToCampaign(input: {
-    id: string;
-    campaignId: string;
-  }): Promise<{ project: Project } | { error: string }> {
-    try {
-      // Validate campaign exists
-      const campaign = await this.prisma.campaign.findUnique({
-        where: { id: input.campaignId }
-      });
-      if (!campaign) {
-        return { error: "Campaign not found" };
-      }
-
-      const project = await this.prisma.project.update({
-        where: { id: input.id },
-        data: {
-          description: "Assigned to campaign"
-        }
-      });
-
-      return { project };
-    } catch (error) {
-      return { error: `Failed to assign to campaign: ${error}` };
-    }
-  }
-
-  async updateStatus(input: {
-    id: string;
-    status: string;
-  }): Promise<{ project: Project } | { error: string }> {
-    try {
-      const validStatuses = ["draft", "active", "in_progress", "completed", "archived"];
-      if (!validStatuses.includes(input.status)) {
-        return { error: "Invalid status" };
-      }
-
-      const project = await this.prisma.project.update({
-        where: { id: input.id },
-        data: {
-          status: input.status as ProjectStatus
-        }
-      });
-
-      return { project };
-    } catch (error) {
-      return { error: `Failed to update status: ${error}` };
-    }
-  }
-
-  async delete(input: { id: string }): Promise<{ success: boolean } | { error: string }> {
-    try {
-      const project = await this.prisma.project.findUnique({
-        where: { id: input.id }
-      });
-
-      if (!project) {
-        return { error: "Project not found" };
-      }
-
-      if (project.status === "in_progress") {
-        return { error: "Cannot delete project that is in progress" };
-      }
-
       await this.prisma.project.delete({
-        where: { id: input.id }
+        where: { project: input.project }
       });
 
       return { success: true };
@@ -270,10 +115,10 @@ export class ProjectConcept {
   }
 
   // Queries
-  async _getById(input: { id: string }): Promise<Project[]> {
+  async _getByProject(input: { project: string }): Promise<Project[]> {
     try {
       const project = await this.prisma.project.findUnique({
-        where: { id: input.id }
+        where: { project: input.project }
       });
       return project ? [project] : [];
     } catch {
@@ -284,7 +129,7 @@ export class ProjectConcept {
   async _getByIndustry(input: { industry: string }): Promise<Project[]> {
     try {
       const projects = await this.prisma.project.findMany({
-        where: { domain: input.industry }
+        where: { industry: input.industry }
       });
       return projects;
     } catch {
@@ -306,40 +151,7 @@ export class ProjectConcept {
   async _getByDifficulty(input: { difficulty: string }): Promise<Project[]> {
     try {
       const projects = await this.prisma.project.findMany({
-        where: { difficulty: input.difficulty as ProjectDifficulty }
-      });
-      return projects;
-    } catch {
-      return [];
-    }
-  }
-
-  async _getByCampaign(input: { campaignId: string }): Promise<Project[]> {
-    try {
-      const projects = await this.prisma.project.findMany({
-        where: { organizationId: input.campaignId }
-      });
-      return projects;
-    } catch {
-      return [];
-    }
-  }
-
-  async _getByIndustryPartner(input: { industryPartnerId: string }): Promise<Project[]> {
-    try {
-      const projects = await this.prisma.project.findMany({
-        where: { industryPartnerId: input.industryPartnerId }
-      });
-      return projects;
-    } catch {
-      return [];
-    }
-  }
-
-  async _getByExpert(input: { expertId: string }): Promise<Project[]> {
-    try {
-      const projects = await this.prisma.project.findMany({
-        where: { expertId: input.expertId }
+        where: { difficulty: input.difficulty }
       });
       return projects;
     } catch {
@@ -350,7 +162,7 @@ export class ProjectConcept {
   async _getByStatus(input: { status: string }): Promise<Project[]> {
     try {
       const projects = await this.prisma.project.findMany({
-        where: { status: input.status as ProjectStatus }
+        where: { status: input.status }
       });
       return projects;
     } catch {
@@ -365,6 +177,8 @@ export class ProjectConcept {
           OR: input.keywords.flatMap(keyword => [
             { title: { contains: keyword, mode: "insensitive" } },
             { description: { contains: keyword, mode: "insensitive" } },
+            { scope: { contains: keyword, mode: "insensitive" } },
+            { requiredSkills: { has: keyword } },
             { tags: { has: keyword } }
           ])
         }
@@ -375,29 +189,16 @@ export class ProjectConcept {
     }
   }
 
-  async _getRecommendationsForPartner(input: {
-    industryPartnerId: string;
-    limit: number;
-  }): Promise<Project[]> {
+  async _getByEstimatedHours(input: { minHours: number; maxHours: number }): Promise<Project[]> {
     try {
-      // Get partner's focus areas
-      const partner = await this.prisma.industryPartner.findUnique({
-        where: { id: input.industryPartnerId }
-      });
-
-      if (!partner) {
-        return [];
-      }
-
-      // Find projects that match partner's focus areas
       const projects = await this.prisma.project.findMany({
         where: {
-          domain: { contains: partner.industry, mode: "insensitive" },
-          status: "published"
-        },
-        take: input.limit
+          estimatedHours: {
+            gte: input.minHours,
+            lte: input.maxHours
+          }
+        }
       });
-
       return projects;
     } catch {
       return [];

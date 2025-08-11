@@ -1,4 +1,4 @@
-import { actions, Frames, Vars } from "@/lib/engine/mod";
+import { actions, Frames, Vars } from "@sonnenreich/concept-design-engine";
 import { APIConcept } from "@/lib/concepts/api";
 import { ProjectConcept } from "@/lib/concepts/project";
 
@@ -93,7 +93,7 @@ export function makeApiProjectSyncs(
       }, { request }],
     ),
     where: (frames: Frames) => 
-      frames.query(Project._getById as any, { id }, { payload }),
+      frames.query(Project._getByProject as any, { project: id }, { payload }),
     then: actions(
       [API.respond as any, { 
         request,

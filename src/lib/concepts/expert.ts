@@ -10,12 +10,12 @@ export class ExpertConcept {
   }
 
   async create(input: {
+    expert: string;
     name: string;
     email: string;
     bio: string;
     expertiseDomains: string[];
-    organizationId?: string;
-    timezone: string;
+    availability?: string;
   }): Promise<{ expert: Expert } | { error: string }> {
     try {
       // Validate required fields
@@ -23,20 +23,22 @@ export class ExpertConcept {
         return { error: "Name is required" };
       }
 
-      // Check if expert with this name already exists (using name as identifier since no email field)
+      // Check if expert with this identifier already exists
       const existingExpert = await this.prisma.expert.findFirst({
-        where: { name: input.name }
+        where: { expert: input.expert }
       });
       if (existingExpert) {
-        return { error: "Expert with this name already exists" };
+        return { error: "Expert with this identifier already exists" };
       }
 
       const expert = await this.prisma.expert.create({
         data: {
+          expert: input.expert,
           name: input.name,
-          bio: input.bio || "",
-          expertise: input.expertiseDomains || [],
-          isAvailable: true,
+          email: input.email,
+          bio: input.bio,
+          expertiseDomains: input.expertiseDomains,
+          availability: input.availability || "available",
         }
       });
 
@@ -90,7 +92,7 @@ export class ExpertConcept {
       const expert = await this.prisma.expert.update({
         where: { id: input.id },
         data: {
-          isAvailable: input.availability === "available"
+          availability: input.availability
         }
       });
 
@@ -165,7 +167,7 @@ export class ExpertConcept {
     try {
       const experts = await this.prisma.expert.findMany({
         where: {
-          expertise: {
+          expertiseDomains: {
             has: input.domain
           }
         }
@@ -189,7 +191,7 @@ export class ExpertConcept {
   async _getAvailable(): Promise<Expert[]> {
     try {
       const experts = await this.prisma.expert.findMany({
-        where: { isAvailable: true }
+        where: { availability: "available" }
       });
       return experts;
     } catch {

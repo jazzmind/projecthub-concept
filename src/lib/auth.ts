@@ -56,7 +56,7 @@ export async function getCurrentUser(request: Request) {
 
   // Get user with additional data from our User concept
   const { User } = await import("@/lib/server");
-  const users = await User._getById({ id: session.user.id });
+  const users = await User._getById({ user: session.user.id });
   const user = users[0] as any; // Type assertion since Prisma types may not be complete
 
   if (!user) {

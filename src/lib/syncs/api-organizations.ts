@@ -1,4 +1,4 @@
-import { actions, Frames, Vars } from "@/lib/engine/mod";
+import { actions, Frames, Vars } from "@sonnenreich/concept-design-engine";
 import { APIConcept } from "@/lib/concepts/api";
 import { OrganizationConcept } from "@/lib/concepts/organization";
 

@@ -1,4 +1,4 @@
-import { actions, Frames, Vars } from "@/lib/engine/mod";
+import { actions, Frames, Vars } from "@sonnenreich/concept-design-engine";
 import { APIConcept } from "@/lib/concepts/api";
 import { TeamConcept } from "@/lib/concepts/team";
 
@@ -84,7 +84,7 @@ export function makeApiTeamSyncs(
       }, { request }],
     ),
     where: (frames: Frames) => 
-      frames.query(Team._getById as any, { id }, { payload }),
+      frames.query(Team._getByTeam as any, { team: id }, { payload }),
     then: actions(
       [API.respond as any, { 
         request,
@@ -104,7 +104,7 @@ export function makeApiTeamSyncs(
     where: (frames: Frames) => {
       const result = new Frames();
       for (const frame of frames) {
-        const teams = Team._getActiveTeams();
+        const teams = Team._getByStatus({ status: "active" });
         result.push({
           ...(frame as any),
           [payload]: teams

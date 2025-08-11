@@ -1,4 +1,4 @@
-import { PrismaClient, Assignment, AssignmentType, AssignmentStatus } from "@prisma/client";
+import { PrismaClient, Assignment, ProgressNote, Feedback } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -9,329 +9,205 @@ export class AssignmentConcept {
     this.prisma = prisma;
   }
 
-  async createDirectAssignment(input: {
-    projectId: string;
-    campaignId: string;
-    studentId?: string;
-    teamId?: string;
-    studentName?: string;
-    studentEmail?: string;
-    assignedBy: string;
+  async assign(input: {
+    assignment: string;
+    task: string;
+    assignee: string;
+    assigner?: string;
+    dueDate?: Date;
   }): Promise<{ assignment: Assignment } | { error: string }> {
     try {
-      // Validate either studentId or teamId is provided (not both)
-      if (!input.studentId && !input.teamId) {
-        return { error: "Either studentId or teamId must be provided" };
-      }
-      if (input.studentId && input.teamId) {
-        return { error: "Cannot assign to both student and team" };
-      }
-
-      // Validate project exists
-      const project = await this.prisma.project.findUnique({
-        where: { id: input.projectId }
+      // Check if assignment ID already exists
+      const existing = await this.prisma.assignment.findFirst({
+        where: { assignment: input.assignment }
       });
-      if (!project) {
-        return { error: "Project not found" };
-      }
 
-      // Validate campaign exists
-      const campaign = await this.prisma.campaign.findUnique({
-        where: { id: input.campaignId }
-      });
-      if (!campaign) {
-        return { error: "Campaign not found" };
-      }
-
-      // Validate team exists if teamId provided
-      if (input.teamId) {
-        const team = await this.prisma.team.findUnique({
-          where: { id: input.teamId }
-        });
-        if (!team) {
-          return { error: "Team not found" };
-        }
+      if (existing) {
+        return { error: "Assignment with this ID already exists" };
       }
 
       const assignment = await this.prisma.assignment.create({
         data: {
-          projectId: input.projectId,
-          campaignId: input.campaignId,
-          type: "direct",
-          teamId: input.teamId,
-          studentId: input.studentId,
-          status: "accepted",
-          organizationId: input.campaignId, // Use campaignId as organization identifier
-          progressNotes: [],
-          deliverableSubmissions: [],
-        }
-      });
-
-      return { assignment };
-    } catch (error) {
-      return { error: `Failed to create direct assignment: ${error}` };
-    }
-  }
-
-  async createApplication(input: {
-    projectId: string;
-    campaignId: string;
-    studentId: string;
-    studentName: string;
-    studentEmail: string;
-    applicationText: string;
-    motivationStatement?: string;
-    relevantSkills?: string[];
-  }): Promise<{ assignment: Assignment } | { error: string }> {
-    try {
-      // Validate project exists
-      const project = await this.prisma.project.findUnique({
-        where: { id: input.projectId }
-      });
-      if (!project) {
-        return { error: "Project not found" };
-      }
-
-      // Validate campaign exists
-      const campaign = await this.prisma.campaign.findUnique({
-        where: { id: input.campaignId }
-      });
-      if (!campaign) {
-        return { error: "Campaign not found" };
-      }
-
-      const assignment = await this.prisma.assignment.create({
-        data: {
-          projectId: input.projectId,
-          campaignId: input.campaignId,
-          type: "application",
-          studentId: input.studentId,
+          assignment: input.assignment,
+          task: input.task,
+          assignee: input.assignee,
+          assigner: input.assigner,
           status: "pending",
-          applicationMessage: input.applicationText,
-          organizationId: input.campaignId,
-          progressNotes: [],
-          deliverableSubmissions: [],
+          dueDate: input.dueDate,
         }
       });
 
       return { assignment };
     } catch (error) {
-      return { error: `Failed to create application: ${error}` };
-    }
-  }
-
-  async createRecommendation(input: {
-    projectId: string;
-    campaignId: string;
-    industryPartnerId: string;
-  }): Promise<{ assignment: Assignment } | { error: string }> {
-    try {
-      // Validate project exists
-      const project = await this.prisma.project.findUnique({
-        where: { id: input.projectId }
-      });
-      if (!project) {
-        return { error: "Project not found" };
-      }
-
-      // Validate campaign exists
-      const campaign = await this.prisma.campaign.findUnique({
-        where: { id: input.campaignId }
-      });
-      if (!campaign) {
-        return { error: "Campaign not found" };
-      }
-
-      // Validate industry partner exists
-      const partner = await this.prisma.industryPartner.findUnique({
-        where: { id: input.industryPartnerId }
-      });
-      if (!partner) {
-        return { error: "Industry partner not found" };
-      }
-
-      const assignment = await this.prisma.assignment.create({
-        data: {
-          projectId: input.projectId,
-          campaignId: input.campaignId,
-          type: "application",
-          status: "pending",
-          organizationId: input.campaignId,
-          progressNotes: [],
-          deliverableSubmissions: [],
-        }
-      });
-
-      return { assignment };
-    } catch (error) {
-      return { error: `Failed to create recommendation: ${error}` };
+      return { error: `Failed to create assignment: ${error}` };
     }
   }
 
   async updateStatus(input: {
-    id: string;
+    assignment: string;
     status: string;
-    updatedBy?: string;
   }): Promise<{ assignment: Assignment } | { error: string }> {
     try {
-      const validStatuses = ["pending", "accepted", "rejected", "in_progress", "completed", "withdrawn"];
-      if (!validStatuses.includes(input.status)) {
-        return { error: "Invalid status" };
-      }
-
-      const updateData: any = { status: input.status as AssignmentStatus };
-
-      // Set assignedAt if status changes to "accepted"
-      if (input.status === "accepted") {
-        updateData.assignedAt = new Date();
-      }
-
-      const assignment = await this.prisma.assignment.update({
-        where: { id: input.id },
-        data: updateData
+      const existing = await this.prisma.assignment.findFirst({
+        where: { assignment: input.assignment }
       });
 
-      return { assignment };
+      if (!existing) {
+        return { error: "Assignment not found" };
+      }
+
+      const updated = await this.prisma.assignment.update({
+        where: { id: existing.id },
+        data: { 
+          status: input.status,
+          ...(input.status === "completed" && { completedDate: new Date() }),
+          ...(input.status === "in_progress" && { startDate: new Date() })
+        }
+      });
+
+      return { assignment: updated };
     } catch (error) {
-      return { error: `Failed to update status: ${error}` };
+      return { error: `Failed to update assignment status: ${error}` };
     }
   }
 
-  async addProgressNote(input: {
-    id: string;
-    note: string;
-    author: string;
+  async updatePriority(input: {
+    assignment: string;
+    priority: string;
   }): Promise<{ assignment: Assignment } | { error: string }> {
     try {
-      const assignment = await this.prisma.assignment.findUnique({
-        where: { id: input.id }
+      const existing = await this.prisma.assignment.findFirst({
+        where: { assignment: input.assignment }
+      });
+
+      if (!existing) {
+        return { error: "Assignment not found" };
+      }
+
+      const updated = await this.prisma.assignment.update({
+        where: { id: existing.id },
+        data: { priority: input.priority }
+      });
+
+      return { assignment: updated };
+    } catch (error) {
+      return { error: `Failed to update assignment priority: ${error}` };
+    }
+  }
+
+  async addProgress(input: {
+    assignment: string;
+    note: string;
+    author: string;
+    noteType: string;
+  }): Promise<{ progressNote: ProgressNote } | { error: string }> {
+    try {
+      // Verify assignment exists
+      const assignment = await this.prisma.assignment.findFirst({
+        where: { assignment: input.assignment }
       });
 
       if (!assignment) {
         return { error: "Assignment not found" };
       }
 
-      const progressNotes = (assignment.progressNotes as any[]) || [];
-      const newNote = {
-        date: new Date(),
-        note: input.note,
-        author: input.author
-      };
-
-      const updatedAssignment = await this.prisma.assignment.update({
-        where: { id: input.id },
+      const progressNote = await this.prisma.progressNote.create({
         data: {
-          progressNotes: [...progressNotes, newNote]
+          assignment: input.assignment,
+          note: input.note,
+          author: input.author,
+          noteType: input.noteType,
         }
       });
 
-      return { assignment: updatedAssignment };
+      return { progressNote };
     } catch (error) {
       return { error: `Failed to add progress note: ${error}` };
     }
   }
 
-  async submitDeliverable(input: {
-    id: string;
-    deliverable: string;
-    fileUrl: string;
-  }): Promise<{ assignment: Assignment } | { error: string }> {
+  async addFeedback(input: {
+    assignment: string;
+    author: string;
+    rating?: number;
+    comment: string;
+  }): Promise<{ feedback: Feedback } | { error: string }> {
     try {
-      const assignment = await this.prisma.assignment.findUnique({
-        where: { id: input.id }
+      // Verify assignment exists
+      const assignment = await this.prisma.assignment.findFirst({
+        where: { assignment: input.assignment }
       });
 
       if (!assignment) {
         return { error: "Assignment not found" };
       }
 
-      const submissions = (assignment.deliverableSubmissions as any[]) || [];
-      const newSubmission = {
-        deliverable: input.deliverable,
-        submittedAt: new Date(),
-        fileUrl: input.fileUrl
-      };
-
-      const updatedAssignment = await this.prisma.assignment.update({
-        where: { id: input.id },
+      const feedback = await this.prisma.feedback.create({
         data: {
-          deliverableSubmissions: [...submissions, newSubmission]
+          assignment: input.assignment,
+          author: input.author,
+          rating: input.rating,
+          comment: input.comment,
         }
       });
 
-      return { assignment: updatedAssignment };
-    } catch (error) {
-      return { error: `Failed to submit deliverable: ${error}` };
-    }
-  }
-
-  async addFeedback(input: {
-    id: string;
-    feedbackType: string;
-    feedback: string;
-    grade?: string;
-  }): Promise<{ assignment: Assignment } | { error: string }> {
-    try {
-      const validTypes = ["student", "partner", "expert"];
-      if (!validTypes.includes(input.feedbackType)) {
-        return { error: "Invalid feedback type" };
-      }
-
-      const updateData: any = {};
-      if (input.feedbackType === "student") {
-        updateData.studentFeedback = input.feedback;
-      } else if (input.feedbackType === "partner") {
-        updateData.partnerFeedback = input.feedback;
-      } else if (input.feedbackType === "expert") {
-        updateData.expertFeedback = input.feedback;
-      }
-
-      if (input.grade) {
-        updateData.finalGrade = input.grade;
-      }
-
-      const assignment = await this.prisma.assignment.update({
-        where: { id: input.id },
-        data: updateData
-      });
-
-      return { assignment };
+      return { feedback };
     } catch (error) {
       return { error: `Failed to add feedback: ${error}` };
     }
   }
 
-  async withdraw(input: { id: string }): Promise<{ assignment: Assignment } | { error: string }> {
+  async reassign(input: {
+    assignment: string;
+    newAssignee: string;
+    assigner?: string;
+  }): Promise<{ assignment: Assignment } | { error: string }> {
     try {
-      const assignment = await this.prisma.assignment.update({
-        where: { id: input.id },
-        data: {
-          status: "cancelled"
-        }
+      const existing = await this.prisma.assignment.findFirst({
+        where: { assignment: input.assignment }
       });
 
-      return { assignment };
-    } catch (error) {
-      return { error: `Failed to withdraw assignment: ${error}` };
-    }
-  }
-
-  async delete(input: { id: string }): Promise<{ success: boolean } | { error: string }> {
-    try {
-      const assignment = await this.prisma.assignment.findUnique({
-        where: { id: input.id }
-      });
-
-      if (!assignment) {
+      if (!existing) {
         return { error: "Assignment not found" };
       }
 
-      if (!["pending", "withdrawn"].includes(assignment.status)) {
-        return { error: "Can only delete pending or withdrawn assignments" };
+      const updated = await this.prisma.assignment.update({
+        where: { id: existing.id },
+        data: { 
+          assignee: input.newAssignee,
+          assigner: input.assigner,
+          status: "pending" // Reset status on reassignment
+        }
+      });
+
+      return { assignment: updated };
+    } catch (error) {
+      return { error: `Failed to reassign: ${error}` };
+    }
+  }
+
+  async delete(input: { assignment: string }): Promise<{ success: boolean } | { error: string }> {
+    try {
+      const existing = await this.prisma.assignment.findFirst({
+        where: { assignment: input.assignment }
+      });
+
+      if (!existing) {
+        return { error: "Assignment not found" };
       }
 
+      // Delete related progress notes and feedback
+      await this.prisma.progressNote.deleteMany({
+        where: { assignment: input.assignment }
+      });
+
+      await this.prisma.feedback.deleteMany({
+        where: { assignment: input.assignment }
+      });
+
+      // Delete the assignment
       await this.prisma.assignment.delete({
-        where: { id: input.id }
+        where: { id: existing.id }
       });
 
       return { success: true };
@@ -341,10 +217,10 @@ export class AssignmentConcept {
   }
 
   // Queries
-  async _getById(input: { id: string }): Promise<Assignment[]> {
+  async _getById(input: { assignment: string }): Promise<Assignment[]> {
     try {
-      const assignment = await this.prisma.assignment.findUnique({
-        where: { id: input.id }
+      const assignment = await this.prisma.assignment.findFirst({
+        where: { assignment: input.assignment }
       });
       return assignment ? [assignment] : [];
     } catch {
@@ -352,10 +228,10 @@ export class AssignmentConcept {
     }
   }
 
-  async _getByProject(input: { projectId: string }): Promise<Assignment[]> {
+  async _getByAssignee(input: { assignee: string }): Promise<Assignment[]> {
     try {
       const assignments = await this.prisma.assignment.findMany({
-        where: { projectId: input.projectId }
+        where: { assignee: input.assignee }
       });
       return assignments;
     } catch {
@@ -363,44 +239,12 @@ export class AssignmentConcept {
     }
   }
 
-  async _getByCampaign(input: { campaignId: string }): Promise<Assignment[]> {
+  async _getByTask(input: { task: string }): Promise<Assignment[]> {
     try {
       const assignments = await this.prisma.assignment.findMany({
-        where: { campaignId: input.campaignId }
+        where: { task: input.task }
       });
       return assignments;
-    } catch {
-      return [];
-    }
-  }
-
-  async _getByStudent(input: { studentId: string }): Promise<Assignment[]> {
-    try {
-      const assignments = await this.prisma.assignment.findMany({
-        where: { studentId: input.studentId }
-      });
-      return assignments;
-    } catch {
-      return [];
-    }
-  }
-
-  async _getByTeam(input: { teamId: string }): Promise<Assignment[]> {
-    try {
-      const assignments = await this.prisma.assignment.findMany({
-        where: { teamId: input.teamId }
-      });
-      return assignments;
-    } catch {
-      return [];
-    }
-  }
-
-  async _getByIndustryPartner(input: { industryPartnerId: string }): Promise<Assignment[]> {
-    try {
-      // Note: industryPartnerId is not directly on Assignment, need to join through Project
-      // For now, return empty array - this would need a proper join query
-      return [];
     } catch {
       return [];
     }
@@ -409,7 +253,7 @@ export class AssignmentConcept {
   async _getByStatus(input: { status: string }): Promise<Assignment[]> {
     try {
       const assignments = await this.prisma.assignment.findMany({
-        where: { status: input.status as AssignmentStatus }
+        where: { status: input.status }
       });
       return assignments;
     } catch {
@@ -417,13 +261,16 @@ export class AssignmentConcept {
     }
   }
 
-  async _getPendingApplications(input: { campaignId: string }): Promise<Assignment[]> {
+  async _getOverdue(): Promise<Assignment[]> {
     try {
       const assignments = await this.prisma.assignment.findMany({
         where: {
-          campaignId: input.campaignId,
-          type: "application",
-          status: "pending"
+          dueDate: {
+            lt: new Date()
+          },
+          status: {
+            notIn: ["completed", "cancelled"]
+          }
         }
       });
       return assignments;
@@ -432,10 +279,10 @@ export class AssignmentConcept {
     }
   }
 
-  async _getActiveAssignments(): Promise<Assignment[]> {
+  async _getByPriority(input: { priority: string }): Promise<Assignment[]> {
     try {
       const assignments = await this.prisma.assignment.findMany({
-        where: { status: "in_progress" }
+        where: { priority: input.priority }
       });
       return assignments;
     } catch {
@@ -443,15 +290,57 @@ export class AssignmentConcept {
     }
   }
 
-  async _getCompletedAssignments(input: { campaignId?: string }): Promise<Assignment[]> {
+  async _getProgressNotes(input: { assignment: string }): Promise<ProgressNote[]> {
     try {
-      const where: any = { status: "completed" };
-      if (input.campaignId) {
-        where.campaignId = input.campaignId;
-      }
+      const notes = await this.prisma.progressNote.findMany({
+        where: { assignment: input.assignment },
+        orderBy: { createdAt: "desc" }
+      });
+      return notes;
+    } catch {
+      return [];
+    }
+  }
+
+  async _getFeedback(input: { assignment: string }): Promise<Feedback[]> {
+    try {
+      const feedback = await this.prisma.feedback.findMany({
+        where: { assignment: input.assignment },
+        orderBy: { createdAt: "desc" }
+      });
+      return feedback;
+    } catch {
+      return [];
+    }
+  }
+
+  async _getByAssigner(input: { assigner: string }): Promise<Assignment[]> {
+    try {
+      const assignments = await this.prisma.assignment.findMany({
+        where: { assigner: input.assigner }
+      });
+      return assignments;
+    } catch {
+      return [];
+    }
+  }
+
+  async _getUpcoming(input: { days: number }): Promise<Assignment[]> {
+    try {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + input.days);
 
       const assignments = await this.prisma.assignment.findMany({
-        where
+        where: {
+          dueDate: {
+            gte: new Date(),
+            lte: futureDate
+          },
+          status: {
+            notIn: ["completed", "cancelled"]
+          }
+        },
+        orderBy: { dueDate: "asc" }
       });
       return assignments;
     } catch {

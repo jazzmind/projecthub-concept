@@ -1,4 +1,4 @@
-import { PrismaClient, User, UserPlatformRole } from "@prisma/client";
+import { PrismaClient, User } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -9,7 +9,8 @@ export class UserConcept {
     this.prisma = prisma;
   }
 
-  async create(input: {
+  async register(input: {
+    user: string;
     email: string;
     name: string;
   }): Promise<{ user: User } | { error: string }> {
@@ -28,250 +29,117 @@ export class UserConcept {
         return { error: "User with this email already exists" };
       }
 
+      // Check if user identifier already exists
+      const existingUserByIdentifier = await this.prisma.user.findFirst({
+        where: { user: input.user }
+      });
+      if (existingUserByIdentifier) {
+        return { error: "User with this identifier already exists" };
+      }
+
       const user = await this.prisma.user.create({
         data: {
+          user: input.user,
           email: input.email,
           name: input.name,
           isEmailVerified: false,
           isActive: true,
           isSuspended: false,
-          platformRole: "user",
-          organizationMemberships: [],
-          preferences: {}
         }
       });
 
       return { user };
     } catch (error) {
-      return { error: `Failed to create user: ${error}` };
+      return { error: `Failed to register user: ${error}` };
     }
   }
 
-  async verifyEmail(input: { id: string }): Promise<{ user: User } | { error: string }> {
+  async verifyEmail(input: { user: string }): Promise<{ user: User } | { error: string }> {
     try {
-      const user = await this.prisma.user.update({
-        where: { id: input.id },
+      const existingUser = await this.prisma.user.findFirst({
+        where: { user: input.user }
+      });
+
+      if (!existingUser) {
+        return { error: "User not found" };
+      }
+
+      const updatedUser = await this.prisma.user.update({
+        where: { id: existingUser.id },
         data: { isEmailVerified: true }
       });
 
-      return { user };
+      return { user: updatedUser };
     } catch (error) {
       return { error: `Failed to verify email: ${error}` };
     }
   }
 
   async updateProfile(input: {
-    id: string;
+    user: string;
     name?: string;
     avatar?: string;
   }): Promise<{ user: User } | { error: string }> {
     try {
+      const existingUser = await this.prisma.user.findFirst({
+        where: { user: input.user }
+      });
+
+      if (!existingUser) {
+        return { error: "User not found" };
+      }
+
       const updateData: any = {};
       if (input.name !== undefined) updateData.name = input.name;
       if (input.avatar !== undefined) updateData.avatar = input.avatar;
 
-      const user = await this.prisma.user.update({
-        where: { id: input.id },
+      const updatedUser = await this.prisma.user.update({
+        where: { id: existingUser.id },
         data: updateData
       });
 
-      return { user };
+      return { user: updatedUser };
     } catch (error) {
       return { error: `Failed to update profile: ${error}` };
     }
   }
 
-  async addOrganizationMembership(input: {
-    id: string;
-    organizationId: string;
-    role: string;
-  }): Promise<{ user: User } | { error: string }> {
+  async updateLastLogin(input: { user: string }): Promise<{ user: User } | { error: string }> {
     try {
-      // Validate role
-      const validRoles = ["admin", "educator", "expert", "industry_partner", "learner"];
-      if (!validRoles.includes(input.role)) {
-        return { error: "Invalid role" };
-      }
-
-      // Validate organization exists
-      const organization = await this.prisma.organization.findUnique({
-        where: { id: input.organizationId }
+      const existingUser = await this.prisma.user.findFirst({
+        where: { user: input.user }
       });
-      if (!organization) {
-        return { error: "Organization not found" };
-      }
 
-      // Get current user
-      const user = await this.prisma.user.findUnique({
-        where: { id: input.id }
-      });
-      if (!user) {
+      if (!existingUser) {
         return { error: "User not found" };
       }
 
-      // Check if membership already exists
-      const memberships = (user.organizationMemberships as any[]) || [];
-      const existingMembership = memberships.find(
-        (m: any) => m.organizationId === input.organizationId
-      );
-
-      if (existingMembership) {
-        return { error: "User already has membership in this organization" };
-      }
-
-      // Add new membership
-      const newMembership = {
-        organizationId: input.organizationId,
-        role: input.role,
-        isActive: true,
-        joinedAt: new Date()
-      };
-
       const updatedUser = await this.prisma.user.update({
-        where: { id: input.id },
-        data: {
-          organizationMemberships: [...memberships, newMembership],
-          // Set as current organization if user has none
-          currentOrganizationId: user.currentOrganizationId || input.organizationId
-        }
-      });
-
-      return { user: updatedUser };
-    } catch (error) {
-      return { error: `Failed to add organization membership: ${error}` };
-    }
-  }
-
-  async updateOrganizationRole(input: {
-    id: string;
-    organizationId: string;
-    role: string;
-  }): Promise<{ user: User } | { error: string }> {
-    try {
-      // Validate role
-      const validRoles = ["admin", "educator", "expert", "industry_partner", "learner"];
-      if (!validRoles.includes(input.role)) {
-        return { error: "Invalid role" };
-      }
-
-      const user = await this.prisma.user.findUnique({
-        where: { id: input.id }
-      });
-      if (!user) {
-        return { error: "User not found" };
-      }
-
-      const memberships = (user.organizationMemberships as any[]) || [];
-      const membershipIndex = memberships.findIndex(
-        (m: any) => m.organizationId === input.organizationId
-      );
-
-      if (membershipIndex === -1) {
-        return { error: "User is not a member of this organization" };
-      }
-
-      // Update role
-      memberships[membershipIndex].role = input.role;
-
-      const updatedUser = await this.prisma.user.update({
-        where: { id: input.id },
-        data: { organizationMemberships: memberships }
-      });
-
-      return { user: updatedUser };
-    } catch (error) {
-      return { error: `Failed to update organization role: ${error}` };
-    }
-  }
-
-  async removeOrganizationMembership(input: {
-    id: string;
-    organizationId: string;
-  }): Promise<{ user: User } | { error: string }> {
-    try {
-      const user = await this.prisma.user.findUnique({
-        where: { id: input.id }
-      });
-      if (!user) {
-        return { error: "User not found" };
-      }
-
-      const memberships = (user.organizationMemberships as any[]) || [];
-      const filteredMemberships = memberships.filter(
-        (m: any) => m.organizationId !== input.organizationId
-      );
-
-      const updateData: any = { organizationMemberships: filteredMemberships };
-
-      // Clear current organization if it was the removed one
-      if (user.currentOrganizationId === input.organizationId) {
-        updateData.currentOrganizationId = null;
-      }
-
-      const updatedUser = await this.prisma.user.update({
-        where: { id: input.id },
-        data: updateData
-      });
-
-      return { user: updatedUser };
-    } catch (error) {
-      return { error: `Failed to remove organization membership: ${error}` };
-    }
-  }
-
-  async setCurrentOrganization(input: {
-    id: string;
-    organizationId: string;
-  }): Promise<{ user: User } | { error: string }> {
-    try {
-      const user = await this.prisma.user.findUnique({
-        where: { id: input.id }
-      });
-      if (!user) {
-        return { error: "User not found" };
-      }
-
-      // Validate user is member of the organization
-      const memberships = (user.organizationMemberships as any[]) || [];
-      const membership = memberships.find(
-        (m: any) => m.organizationId === input.organizationId && m.isActive
-      );
-
-      if (!membership) {
-        return { error: "User is not an active member of this organization" };
-      }
-
-      const updatedUser = await this.prisma.user.update({
-        where: { id: input.id },
-        data: { currentOrganizationId: input.organizationId }
-      });
-
-      return { user: updatedUser };
-    } catch (error) {
-      return { error: `Failed to set current organization: ${error}` };
-    }
-  }
-
-  async updateLastLogin(input: { id: string }): Promise<{ user: User } | { error: string }> {
-    try {
-      const user = await this.prisma.user.update({
-        where: { id: input.id },
+        where: { id: existingUser.id },
         data: { lastLoginAt: new Date() }
       });
 
-      return { user };
+      return { user: updatedUser };
     } catch (error) {
       return { error: `Failed to update last login: ${error}` };
     }
   }
 
   async suspendUser(input: {
-    id: string;
+    user: string;
     reason: string;
   }): Promise<{ user: User } | { error: string }> {
     try {
-      const user = await this.prisma.user.update({
-        where: { id: input.id },
+      const existingUser = await this.prisma.user.findFirst({
+        where: { user: input.user }
+      });
+
+      if (!existingUser) {
+        return { error: "User not found" };
+      }
+
+      const updatedUser = await this.prisma.user.update({
+        where: { id: existingUser.id },
         data: {
           isSuspended: true,
           suspendedAt: new Date(),
@@ -279,16 +147,24 @@ export class UserConcept {
         }
       });
 
-      return { user };
+      return { user: updatedUser };
     } catch (error) {
       return { error: `Failed to suspend user: ${error}` };
     }
   }
 
-  async unsuspendUser(input: { id: string }): Promise<{ user: User } | { error: string }> {
+  async unsuspendUser(input: { user: string }): Promise<{ user: User } | { error: string }> {
     try {
-      const user = await this.prisma.user.update({
-        where: { id: input.id },
+      const existingUser = await this.prisma.user.findFirst({
+        where: { user: input.user }
+      });
+
+      if (!existingUser) {
+        return { error: "User not found" };
+      }
+
+      const updatedUser = await this.prisma.user.update({
+        where: { id: existingUser.id },
         data: {
           isSuspended: false,
           suspendedAt: null,
@@ -296,32 +172,48 @@ export class UserConcept {
         }
       });
 
-      return { user };
+      return { user: updatedUser };
     } catch (error) {
       return { error: `Failed to unsuspend user: ${error}` };
     }
   }
 
   async updatePreferences(input: {
-    id: string;
+    user: string;
     preferences: object;
   }): Promise<{ user: User } | { error: string }> {
     try {
-      const user = await this.prisma.user.update({
-        where: { id: input.id },
+      const existingUser = await this.prisma.user.findFirst({
+        where: { user: input.user }
+      });
+
+      if (!existingUser) {
+        return { error: "User not found" };
+      }
+
+      const updatedUser = await this.prisma.user.update({
+        where: { id: existingUser.id },
         data: { preferences: input.preferences }
       });
 
-      return { user };
+      return { user: updatedUser };
     } catch (error) {
       return { error: `Failed to update preferences: ${error}` };
     }
   }
 
-  async delete(input: { id: string }): Promise<{ success: boolean } | { error: string }> {
+  async delete(input: { user: string }): Promise<{ success: boolean } | { error: string }> {
     try {
+      const existingUser = await this.prisma.user.findFirst({
+        where: { user: input.user }
+      });
+
+      if (!existingUser) {
+        return { error: "User not found" };
+      }
+
       await this.prisma.user.update({
-        where: { id: input.id },
+        where: { id: existingUser.id },
         data: { isActive: false }
       });
 
@@ -332,10 +224,10 @@ export class UserConcept {
   }
 
   // Queries
-  async _getById(input: { id: string }): Promise<User[]> {
+  async _getById(input: { user: string }): Promise<User[]> {
     try {
-      const user = await this.prisma.user.findUnique({
-        where: { id: input.id }
+      const user = await this.prisma.user.findFirst({
+        where: { user: input.user }
       });
       return user ? [user] : [];
     } catch {
@@ -349,31 +241,6 @@ export class UserConcept {
         where: { email: input.email }
       });
       return user ? [user] : [];
-    } catch {
-      return [];
-    }
-  }
-
-  async _getByOrganization(input: { organizationId: string }): Promise<User[]> {
-    try {
-      const users = await this.prisma.user.findMany({
-        where: {
-          // TODO: Implement proper JSON query for organization memberships
-          // For now, return all users
-        }
-      });
-      return users;
-    } catch {
-      return [];
-    }
-  }
-
-  async _getAdminUsers(): Promise<User[]> {
-    try {
-      const users = await this.prisma.user.findMany({
-        where: { platformRole: "admin" }
-      });
-      return users;
     } catch {
       return [];
     }
@@ -393,59 +260,30 @@ export class UserConcept {
     }
   }
 
-  async _isAdmin(input: { id: string }): Promise<boolean[]> {
+  async _getUnverifiedUsers(): Promise<User[]> {
     try {
-      const user = await this.prisma.user.findUnique({
-        where: { id: input.id }
+      const users = await this.prisma.user.findMany({
+        where: {
+          isEmailVerified: false,
+          isActive: true
+        }
       });
-      return [user?.platformRole === "admin" || false];
+      return users;
     } catch {
-      return [false];
+      return [];
     }
   }
 
-  async _hasOrganizationRole(input: {
-    id: string;
-    organizationId: string;
-    role: string;
-  }): Promise<boolean[]> {
+  async _getSuspendedUsers(): Promise<User[]> {
     try {
-      const user = await this.prisma.user.findUnique({
-        where: { id: input.id }
+      const users = await this.prisma.user.findMany({
+        where: {
+          isSuspended: true
+        }
       });
-      
-      if (!user) return [false];
-
-      const memberships = (user.organizationMemberships as any[]) || [];
-      const membership = memberships.find(
-        (m: any) => m.organizationId === input.organizationId && m.role === input.role && m.isActive
-      );
-
-      return [!!membership];
+      return users;
     } catch {
-      return [false];
-    }
-  }
-
-  async _canAccessOrganization(input: {
-    id: string;
-    organizationId: string;
-  }): Promise<boolean[]> {
-    try {
-      const user = await this.prisma.user.findUnique({
-        where: { id: input.id }
-      });
-      
-      if (!user) return [false];
-
-      const memberships = (user.organizationMemberships as any[]) || [];
-      const membership = memberships.find(
-        (m: any) => m.organizationId === input.organizationId && m.isActive
-      );
-
-      return [!!membership];
-    } catch {
-      return [false];
+      return [];
     }
   }
 }
