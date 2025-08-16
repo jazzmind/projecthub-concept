@@ -28,14 +28,14 @@ export { uuid } from './util';
 export { createNextJSEngine, type NextJSEngineConfig } from './nextjs';
 
 // MongoDB integration
-export { 
-    createMongoDBConcept, 
-    BaseMongoDBConcept,
-    MongoDBQueryHelpers,
-    ExampleMongoDBConcept,
-    type MongoDBConceptConfig,
-    type MongoDBConcept 
-} from './mongodb';
+// export { 
+//     createMongoDBConcept, 
+//     BaseMongoDBConcept,
+//     MongoDBQueryHelpers,
+//     ExampleMongoDBConcept,
+//     type MongoDBConceptConfig,
+//     type MongoDBConcept 
+// } from './mongodb';
 
 // Prisma integration
 export { 
