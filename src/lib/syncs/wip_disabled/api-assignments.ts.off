@@ -1,0 +1,208 @@
+import { actions, Frames, Vars } from "@/lib/engine";
+import { APIConcept } from "@/lib/concepts/common/api";
+import { AssignmentConcept } from "@/lib/concepts/wip/assignment";
+import { UserConcept } from "@/lib/concepts/common/user";
+import { SessionConcept } from "@/lib/concepts/common/session";
+import { MembershipConcept } from "@/lib/concepts/common/membership";
+import { RoleConcept } from "@/lib/concepts/common/role";
+
+/**
+ * Assignment Management Synchronizations
+ * 
+ * Handles assignment creation, lifecycle management, and permission-controlled operations
+ */
+
+export function makeApiAssignmentSyncs(
+  API: APIConcept,
+  Assignment: AssignmentConcept,
+  User: UserConcept,
+  Session: SessionConcept,
+  Membership: MembershipConcept,
+  Role: RoleConcept,
+) {
+
+  // Create assignment with permission check
+  const CreateAssignment = ({ 
+    request, 
+    task, 
+    assignee, 
+    assigner, 
+    dueDate, 
+    priority, 
+    description 
+  }: Vars) => ({
+    when: actions(
+      [API.request as any, { 
+        method: "POST", 
+        path: "/api/assignments",
+        task,
+        assignee,
+        dueDate,
+        priority,
+        description
+      }, { request }],
+    ),
+    where: (frames: Frames) => {
+      const frame = frames[0] as any;
+      // Get current user from API context
+      const currentUser = frame.headers?.['x-user-id'] || frame.assigner;
+      const sessionId = frame.headers?.['x-session-key'];
+      
+      // Simplified permission check - in production would validate via auth bridge
+      const hasPermission = currentUser === frame.assigner || frame.userRole === 'platform_admin';
+      
+      const result = new Frames();
+      if (hasPermission) {
+        result.push({
+          ...(frame as any),
+          [assigner]: currentUser
+        } as any);
+      }
+      return result;
+    },
+    then: actions(
+      [Assignment.assign as any, { 
+        task,
+        assignee,
+        assigner,
+        dueDate,
+        priority,
+        description
+      }],
+    ),
+  });
+
+  // Handle assignment creation response
+  const CreateAssignmentResponse = ({ 
+    request, 
+    assignment, 
+    payload 
+  }: Vars) => ({
+    when: actions(
+      [API.request as any, { 
+        method: "POST", 
+        path: "/api/assignments"
+      }, { request }],
+      [Assignment.assign as any, {}, { assignment }],
+    ),
+    where: (frames: Frames) => {
+      const result = new Frames();
+      for (const frame of frames) {
+        result.push({
+          ...(frame as any),
+          [payload]: { assignment: (frame as any)[assignment] }
+        } as any);
+      }
+      return result;
+    },
+    then: actions(
+      [API.respond as any, { 
+        request,
+        status: 201,
+        output: (payload as unknown) as symbol
+      }],
+    ),
+  });
+
+  // Accept assignment
+  const AcceptAssignment = ({ request, assignmentId, userId }: Vars) => ({
+    when: actions(
+      [API.request as any, { 
+        method: "POST", 
+        path: "/api/assignments/:assignmentId/accept",
+        assignmentId
+      }, { request }],
+    ),
+    where: (frames: Frames) => 
+      frames.query(Assignment._getById as any, { assignment: assignmentId }, { assignmentData: assignmentId }),
+    then: actions(
+      [Assignment.updateStatus as any, { assignment: assignmentId, status: "accepted" }],
+    ),
+  });
+
+  // Start assignment
+  const StartAssignment = ({ request, assignmentId }: Vars) => ({
+    when: actions(
+      [API.request as any, { 
+        method: "POST", 
+        path: "/api/assignments/:assignmentId/start",
+        assignmentId
+      }, { request }],
+    ),
+    then: actions(
+      [Assignment.updateStatus as any, { assignment: assignmentId, status: "in_progress" }],
+    ),
+  });
+
+  // Complete assignment
+  const CompleteAssignment = ({ request, assignmentId }: Vars) => ({
+    when: actions(
+      [API.request as any, { 
+        method: "POST", 
+        path: "/api/assignments/:assignmentId/complete",
+        assignmentId
+      }, { request }],
+    ),
+    then: actions(
+      [Assignment.updateStatus as any, { assignment: assignmentId, status: "completed" }],
+    ),
+  });
+
+  // Get assignment details
+  const GetAssignment = ({ request, assignmentId, payload }: Vars) => ({
+    when: actions(
+      [API.request as any, { 
+        method: "GET", 
+        path: "/api/assignments/:assignmentId",
+        assignmentId
+      }, { request }],
+    ),
+    where: (frames: Frames) => 
+      frames.query(Assignment._getById as any, { assignment: assignmentId }, { payload }),
+    then: actions(
+      [API.respond as any, { 
+        request,
+        status: 200,
+        output: (payload as unknown) as symbol
+      }],
+    ),
+  });
+
+  // Get user's assignments
+  const GetMyAssignments = ({ request, userId, payload }: Vars) => ({
+    when: actions(
+      [API.request as any, { 
+        method: "GET", 
+        path: "/api/assignments/my"
+      }, { request }],
+    ),
+    where: (frames: Frames) => {
+      // Extract userId into symbol, then query and bind results
+      const withUser = new Frames();
+      for (const frame of frames) {
+        const currentUser = (frame as any).headers?.['x-user-id'];
+        withUser.push({ ...(frame as any), [userId]: currentUser } as any);
+      }
+      return withUser.query(
+        Assignment._getByAssignee as any,
+        { assignee: userId },
+        { [String(payload)]: (Symbol.for('assignments') as unknown) as symbol }
+      );
+    },
+    then: actions(
+      [API.respond as any, { request, status: 200, output: (Symbol.for('assignments') as unknown) as symbol }],
+    ),
+  });
+
+
+
+  return {
+    CreateAssignment,
+    CreateAssignmentResponse,
+    AcceptAssignment,
+    StartAssignment,
+    CompleteAssignment,
+    GetAssignment,
+    GetMyAssignments,
+  } as const;
+}

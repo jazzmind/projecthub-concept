@@ -1,0 +1,185 @@
+import { PrismaClient, Comment } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+export class CommentConcept {
+  private prisma: PrismaClient;
+
+  constructor() {
+    this.prisma = prisma;
+  }
+
+  async create(input: {
+    comment: string;
+    entityType: string;
+    entityId: string;
+    authorEntity: string;
+    content: string;
+    parentComment?: string;
+    metadata?: object;
+  }): Promise<{ comment: Comment } | { error: string }> {
+    try {
+      const comment = await this.prisma.comment.create({
+        data: {
+          comment: input.comment,
+          entityType: input.entityType,
+          entityId: input.entityId,
+          authorEntity: input.authorEntity,
+          content: input.content,
+          parentComment: input.parentComment,
+          metadata: input.metadata,
+        }
+      });
+
+      return { comment };
+    } catch (error) {
+      return { error: `Failed to create comment: ${error}` };
+    }
+  }
+
+  async update(input: {
+    comment: string;
+    content: string;
+  }): Promise<{ comment: Comment } | { error: string }> {
+    try {
+      const comment = await this.prisma.comment.update({
+        where: { comment: input.comment },
+        data: { 
+          content: input.content,
+          isEdited: true,
+          updatedAt: new Date()
+        }
+      });
+
+      return { comment };
+    } catch (error) {
+      return { error: `Failed to update comment: ${error}` };
+    }
+  }
+
+  async delete(input: {
+    comment: string;
+  }): Promise<{ success: boolean } | { error: string }> {
+    try {
+      await this.prisma.comment.delete({
+        where: { comment: input.comment }
+      });
+
+      return { success: true };
+    } catch (error) {
+      return { error: `Failed to delete comment: ${error}` };
+    }
+  }
+
+  async reply(input: {
+    comment: string;
+    entityType: string;
+    entityId: string;
+    authorEntity: string;
+    content: string;
+    parentComment: string;
+  }): Promise<{ comment: Comment } | { error: string }> {
+    try {
+      // Verify parent comment exists
+      const parent = await this.prisma.comment.findUnique({
+        where: { comment: input.parentComment }
+      });
+
+      if (!parent) {
+        return { error: "Parent comment not found" };
+      }
+
+      const comment = await this.prisma.comment.create({
+        data: {
+          comment: input.comment,
+          entityType: input.entityType,
+          entityId: input.entityId,
+          authorEntity: input.authorEntity,
+          content: input.content,
+          parentComment: input.parentComment,
+        }
+      });
+
+      return { comment };
+    } catch (error) {
+      return { error: `Failed to create reply: ${error}` };
+    }
+  }
+
+  // Queries
+  async _getByComment(input: { comment: string }): Promise<Comment[]> {
+    const comment = await this.prisma.comment.findUnique({
+      where: { comment: input.comment }
+    });
+    return comment ? [comment] : [];
+  }
+
+  async _getByTarget(input: { entityType: string; entityId: string }): Promise<Comment[]> {
+    return await this.prisma.comment.findMany({
+      where: { 
+        entityType: input.entityType,
+        entityId: input.entityId
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+  }
+
+  async _getByAuthor(input: { authorEntity: string }): Promise<Comment[]> {
+    return await this.prisma.comment.findMany({
+      where: { 
+        authorEntity: input.authorEntity
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async _getTopLevelComments(input: { entityType: string; entityId: string }): Promise<Comment[]> {
+    return await this.prisma.comment.findMany({
+      where: { 
+        entityType: input.entityType,
+        entityId: input.entityId,
+        parentComment: null
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+  }
+
+  async _getReplies(input: { parentComment: string }): Promise<Comment[]> {
+    return await this.prisma.comment.findMany({
+      where: { 
+        parentComment: input.parentComment
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+  }
+
+  async _getRecentComments(input: { limit: number }): Promise<Comment[]> {
+    return await this.prisma.comment.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: input.limit
+    });
+  }
+
+  async _searchByContent(input: { searchTerm: string }): Promise<Comment[]> {
+    return await this.prisma.comment.findMany({
+      where: { 
+        content: { contains: input.searchTerm, mode: 'insensitive' }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async _getCommentThread(input: { entityType: string; entityId: string }): Promise<Comment[]> {
+    // Get all comments for target, organized as thread
+    return await this.prisma.comment.findMany({
+      where: { 
+        entityType: input.entityType,
+        entityId: input.entityId
+      },
+      orderBy: [
+        { parentComment: 'asc' },
+        { createdAt: 'asc' }
+      ]
+    });
+  }
+}

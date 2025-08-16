@@ -1,0 +1,231 @@
+import { PrismaClient, Tag } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+export class TagConcept {
+  private prisma: PrismaClient;
+
+  constructor() {
+    this.prisma = prisma;
+  }
+
+  async create(input: {
+    tag: string;
+    name: string;
+    color?: string;
+    description?: string;
+    category?: string;
+  }): Promise<{ tag: Tag } | { error: string }> {
+    try {
+      // Check uniqueness
+      const existing = await this.prisma.tag.findFirst({
+        where: { 
+          OR: [
+            { tag: input.tag },
+            { name: input.name }
+          ]
+        }
+      });
+      
+      if (existing) {
+        return { error: "Tag with this identifier or name already exists" };
+      }
+
+      const tag = await this.prisma.tag.create({
+        data: {
+          tag: input.tag,
+          name: input.name,
+          color: input.color || "#6366f1",
+          description: input.description,
+          category: input.category || "general",
+          isActive: true,
+          usage_count: 0,
+        }
+      });
+
+      return { tag };
+    } catch (error) {
+      return { error: `Failed to create tag: ${error}` };
+    }
+  }
+
+  async update(input: {
+    tag: string;
+    name?: string;
+    color?: string;
+    description?: string;
+    category?: string;
+  }): Promise<{ tag: Tag } | { error: string }> {
+    try {
+      const tag = await this.prisma.tag.update({
+        where: { tag: input.tag },
+        data: {
+          name: input.name,
+          color: input.color,
+          description: input.description,
+          category: input.category,
+          updatedAt: new Date()
+        }
+      });
+
+      return { tag };
+    } catch (error) {
+      return { error: `Failed to update tag: ${error}` };
+    }
+  }
+
+  async incrementUsage(input: {
+    tag: string;
+  }): Promise<{ tag: Tag } | { error: string }> {
+    try {
+      const tag = await this.prisma.tag.update({
+        where: { tag: input.tag },
+        data: { 
+          usage_count: { increment: 1 },
+          updatedAt: new Date()
+        }
+      });
+
+      return { tag };
+    } catch (error) {
+      return { error: `Failed to increment tag usage: ${error}` };
+    }
+  }
+
+  async decrementUsage(input: {
+    tag: string;
+  }): Promise<{ tag: Tag } | { error: string }> {
+    try {
+      const tag = await this.prisma.tag.update({
+        where: { tag: input.tag },
+        data: { 
+          usage_count: { decrement: 1 },
+          updatedAt: new Date()
+        }
+      });
+
+      return { tag };
+    } catch (error) {
+      return { error: `Failed to decrement tag usage: ${error}` };
+    }
+  }
+
+  async deactivate(input: {
+    tag: string;
+  }): Promise<{ tag: Tag } | { error: string }> {
+    try {
+      const tag = await this.prisma.tag.update({
+        where: { tag: input.tag },
+        data: { 
+          isActive: false,
+          updatedAt: new Date()
+        }
+      });
+
+      return { tag };
+    } catch (error) {
+      return { error: `Failed to deactivate tag: ${error}` };
+    }
+  }
+
+  async delete(input: {
+    tag: string;
+  }): Promise<{ success: boolean } | { error: string }> {
+    try {
+      // Only allow deletion of non-system tags with zero usage
+      const tagData = await this.prisma.tag.findUnique({
+        where: { tag: input.tag }
+      });
+
+      if (!tagData) {
+        return { error: "Tag not found" };
+      }
+
+      // System tag protection removed - field doesn't exist in schema
+
+      if (tagData.usage_count > 0) {
+        return { error: "Cannot delete tags that are in use" };
+      }
+
+      await this.prisma.tag.delete({
+        where: { tag: input.tag }
+      });
+
+      return { success: true };
+    } catch (error) {
+      return { error: `Failed to delete tag: ${error}` };
+    }
+  }
+
+  // Queries
+  async _getByTag(input: { tag: string }): Promise<Tag[]> {
+    const tag = await this.prisma.tag.findUnique({
+      where: { tag: input.tag }
+    });
+    return tag ? [tag] : [];
+  }
+
+  async _getByName(input: { name: string }): Promise<Tag[]> {
+    const tag = await this.prisma.tag.findFirst({
+      where: { name: input.name }
+    });
+    return tag ? [tag] : [];
+  }
+
+  async _getByCategory(input: { category: string }): Promise<Tag[]> {
+    return await this.prisma.tag.findMany({
+      where: { 
+        category: input.category,
+        isActive: true 
+      },
+      orderBy: { name: 'asc' }
+    });
+  }
+
+  async _getActive(): Promise<Tag[]> {
+    return await this.prisma.tag.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' }
+    });
+  }
+
+  // _getSystemTags removed - isSystemTag field doesn't exist in schema
+
+  async _getMostUsed(input: { limit: number }): Promise<Tag[]> {
+    return await this.prisma.tag.findMany({
+      where: { isActive: true },
+      orderBy: { usage_count: 'desc' },
+      take: input.limit
+    });
+  }
+
+  async _getByColor(input: { color: string }): Promise<Tag[]> {
+    return await this.prisma.tag.findMany({
+      where: { 
+        color: input.color,
+        isActive: true 
+      },
+      orderBy: { name: 'asc' }
+    });
+  }
+
+  async _searchByName(input: { searchTerm: string }): Promise<Tag[]> {
+    return await this.prisma.tag.findMany({
+      where: { 
+        name: { contains: input.searchTerm, mode: 'insensitive' },
+        isActive: true 
+      },
+      orderBy: { usage_count: 'desc' }
+    });
+  }
+
+  async _getUnused(): Promise<Tag[]> {
+    return await this.prisma.tag.findMany({
+      where: { 
+        usage_count: 0,
+        isActive: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+}

@@ -1,0 +1,96 @@
+<concept_spec>
+
+concept Project
+
+purpose
+  manage project templates and specifications that can be sourced for educational use
+
+state
+  a set of Projects with
+    a title String
+    a description String
+    an optional image String
+    a scope String
+    a industry String
+    a domain String
+    a difficulty String
+    an estimatedHours Number
+    a deliverables set of String
+    a status String
+    an optional templateType String
+    an aiGenerated Flag
+    an optional sourceData Object
+    a createdAt Date
+    an updatedAt Date
+
+actions
+  create(title: String, description: String, scope: String, industry: String, domain: String, difficulty: String, estimatedHours: Number, deliverables: [String], image: String?) -> Project | {error}
+    - create new project
+    - validate required fields
+    - set status to "draft", aiGenerated to false
+    - return project with generated id and timestamps
+
+  generateWithAI(industry: String, domain: String, difficulty: String, estimatedHours: Number, sourceData: Object?) -> Project | {error}
+    - generate project using AI based on parameters
+    - set aiGenerated to true, status to "draft"
+    - store sourceData for reference
+    - return generated project
+
+  extractFromDocument(fileId: String, originalFilename: String, organizationId: String) -> Project | {error}
+    - extract project data from uploaded document using AI
+    - anonymize content and remove company names
+    - generate project image using AI
+    - set aiGenerated to true, status to "draft"
+    - return extracted project
+
+  update(id: String, title: String?, description: String?, scope: String?, difficulty: String?, estimatedHours: Number?, deliverables: [String]?, image: String?) -> Project | {error}
+    - update existing project fields
+    - update updatedAt timestamp
+    - return updated project
+
+  publish(id: String) -> Project | {error}
+    - publish project (make available for use)
+    - set status to "published"
+    - return updated project
+
+  archive(id: String) -> Project | {error}
+    - archive project
+    - set status to "archived"
+    - return updated project
+
+  delete(id: String) -> {success: Boolean} | {error}
+    - delete project if status is "draft"
+    - return success status
+
+queries
+  _getById(id: String) -> [Project]
+    - return project by identifier
+
+  _getByIndustry(industry: String) -> [Project]
+    - return projects in specified industry
+
+  _getByDomain(domain: String) -> [Project]
+    - return projects in specified technical domain
+
+  _getByDifficulty(difficulty: String) -> [Project]
+    - return projects of specified difficulty
+
+  _getByStatus(status: String) -> [Project]
+    - return projects with specified status
+
+  _getPublished() -> [Project]
+    - return published projects available for use
+
+  _searchByKeywords(keywords: [String]) -> [Project]
+    - return projects matching keywords in title, description, or tags
+
+  _getByTags(tags: [String]) -> [Project]
+    - return projects containing any of the specified tags
+
+  _getAIGenerated() -> [Project]
+    - return AI-generated projects
+
+operational principle
+  Projects are reusable templates that define learning experiences. After create(project: "p1", title: "Build API", ...) and publish(project: "p1"), then _getPublished() includes the project. Projects contain comprehensive specifications for assignment to learning experiences.
+
+</concept_spec>

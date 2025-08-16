@@ -1,4 +1,21 @@
 // Server-side only email service
+//
+// Purpose
+//   - Provide a minimal, server-only SMTP sender for Better Auth OTP flows.
+//   - Isolated here to avoid bundling nodemailer on the client.
+//
+// Sync vs Async
+//   - SMTP operations are async IO; `sendOTP` is async and awaited by the
+//     Better Auth plugin callback.
+//   - Guard against client usage by throwing if `window` is defined.
+//
+// Configuration
+//   - EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS are required.
+//   - Use provider-specific app passwords where necessary (e.g., Gmail).
+//
+// Security
+//   - Do not log OTP values or PII beyond what is necessary for delivery.
+//   - Templates should remain generic and not leak environment details.
 import nodemailer from "nodemailer";
 
 export async function sendOTP(email: string, otp: string, type: 'email-verification' | 'sign-in' | 'forget-password') {

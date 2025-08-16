@@ -1,0 +1,55 @@
+import { PrismaClient, Feedback } from "@prisma/client";
+
+export class FeedbackConcept {
+  private prisma: PrismaClient;
+
+  constructor() {
+    this.prisma = new PrismaClient();
+  }
+
+  async addFeedback(input: {
+    assignment: string;
+    author: string;
+    rating?: number;
+    comment: string;
+  }): Promise<{ feedback: Feedback } | { error: string }> {
+    try {
+      const feedback = await this.prisma.feedback.create({
+        data: {
+          assignment: input.assignment,
+          author: input.author,
+          rating: input.rating,
+          comment: input.comment,
+        },
+      });
+      return { feedback };
+    } catch (error) {
+      return { error: `Failed to add feedback: ${error}` };
+    }
+  }
+
+  async deleteFeedback(input: { id: string }): Promise<{ success: boolean } | { error: string }> {
+    try {
+      await this.prisma.feedback.delete({ where: { id: input.id } });
+      return { success: true };
+    } catch (error) {
+      return { error: `Failed to delete feedback: ${error}` };
+    }
+  }
+
+  async _getByAssignment(input: { assignment: string }): Promise<Feedback[]> {
+    return await this.prisma.feedback.findMany({
+      where: { assignment: input.assignment },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  async _getByAuthor(input: { author: string }): Promise<Feedback[]> {
+    return await this.prisma.feedback.findMany({
+      where: { author: input.author },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+}
+
+

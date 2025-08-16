@@ -1,0 +1,87 @@
+sync GetCurrentUser
+when
+    API.request (method: "GET", path: "/api/auth/current-user") : (request: request)
+where
+    request.headers["x-user-id"] exists
+    request.headers["x-user-email"] exists  
+    request.headers["x-user-name"] exists
+    request.headers["x-session-key"] exists
+then
+    continue with ResolveCurrentUserContext
+
+sync ResolveCurrentUserContext
+when
+    GetCurrentUser () : (userId: userId, memberships: memberships, currentContext: currentContext)
+where
+    memberships exists
+    Role._getByName (name: effectiveRole) : (roleDetails: role)
+    Organization._getAllByType (type: "education") : (allOrganizations: organizations)
+then
+    continue with BuildAuthUserResponse
+
+sync BuildAuthUserResponse
+when
+    ResolveCurrentUserContext () : (userId: userId, userEmail: userEmail, userName: userName, effectiveContext: effectiveContext, roleDetails: roleDetails, memberships: memberships, allOrganizations: allOrganizations)
+where
+    roleDetails exists or effectiveContext exists
+then
+    API.respond (request: request, status: 200, body: authUser)
+
+sync SwitchUserContext
+when
+    API.request (method: "POST", path: "/api/auth/switch-context", contextId: contextId, userId: userId, sessionKey: sessionKey) : (request: request)
+where
+    Membership._getActiveByMember (memberEntity: userId) : (memberships: memberships)
+    Session.setContext (sessionKey: sessionKey, context: contextId) : (updatedSession: session)
+then
+    continue with ValidateContextSwitch
+
+sync ValidateContextSwitch
+when
+    SwitchUserContext () : (request: request, contextId: contextId, memberships: memberships, updatedSession: updatedSession)
+where
+    memberships contains member with targetEntity = contextId
+then
+    API.respond (request: request, status: 200, body: {success: true})
+
+sync ValidateContextSwitchFailure
+when
+    SwitchUserContext () : (request: request, contextId: contextId, memberships: memberships, updatedSession: updatedSession)
+where
+    memberships does not contain member with targetEntity = contextId
+then
+    API.respond (request: request, status: 403, body: {error: "Access denied"})
+
+sync CheckUserPermission
+when
+    API.request (method: "POST", path: "/api/auth/check-permission", resource: resource, action: action) : (request: request)
+where
+    GetCurrentUser (request: request) : (authUserData: userData)
+    Role._hasPermission (name: userData.effectiveRole.name, resource: resource, action: action) : (hasPermission: permissionResult)
+then
+    API.respond (request: request, status: 200, body: {hasPermission: permissionResult})
+
+sync GetUserOrganizations
+when
+    API.request (method: "GET", path: "/api/auth/organizations") : (request: request)
+where
+    GetCurrentUser (request: request) : (authUserData: userData)
+    userData.availableContexts exists
+then
+    API.respond (request: request, status: 200, body: {organizations: organizations})
+
+sync LogoutUser
+when
+    API.request (method: "POST", path: "/api/auth/logout", sessionKey: sessionKey) : (request: request)
+where
+    Session.expire (sessionKey: sessionKey) : (expiredSession: session)
+then
+    API.respond (request: request, status: 200, body: {success: true})
+
+sync TrackSessionActivity
+when
+    API.request (sessionKey: sessionKey) : (request: request)
+where
+    sessionKey exists
+then
+    Session.updateActivity (sessionKey: sessionKey)

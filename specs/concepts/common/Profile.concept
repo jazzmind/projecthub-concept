@@ -1,0 +1,80 @@
+<concept_spec>  
+
+concept Profile
+
+purpose
+  manage extended profile information for target entities with specific roles and expertise (independent of user concept)
+
+state
+  a set of Profiles with
+    an id String
+    a targetEntity String
+    a profileType String
+    a bio String
+    an optional title String
+    an optional company String
+    an optional linkedinUrl String
+    an optional website String
+    an optional timezone String
+    an optional hourlyRate Number
+    a rating Number
+    an isActive Flag
+    an isVerified Flag
+    a createdAt Date
+    an updatedAt Date
+
+actions
+  create(profile: String, userEntity: String, profileType: String, bio: String, title: String?, company: String?, timezone: String?) -> Profile | {error}
+    - create new profile for user
+    - validate userEntity exists
+    - initialize rating to 0, totalProjects to 0
+    - set isActive=true, isVerified=false
+    - return profile with generated id and timestamps
+
+  update(profile: String, bio: String?, title: String?, company: String?, linkedinUrl: String?, website: String?, timezone: String?, hourlyRate: Number?) -> Profile | {error}
+    - update existing profile fields
+    - return updated profile
+
+  verify(profile: String) -> Profile | {error}
+    - mark profile as verified
+    - set isVerified=true
+    - return updated profile
+
+  activate(profile: String) -> Profile | {error}
+    - activate profile
+    - set isActive=true
+    - return updated profile
+
+  deactivate(profile: String) -> Profile | {error}
+    - deactivate profile
+    - set isActive=false
+    - return updated profile
+
+  delete(profile: String) -> {success: Boolean} | {error}
+    - delete profile
+    - return success status
+
+queries
+  _getByProfile(profile: String) -> [Profile]
+    - return profile by identifier
+
+  _getByType(profileType: String) -> [Profile]
+    - return profiles of specific type
+
+  _getVerified() -> [Profile]
+    - return verified profiles
+
+  _getTopRated(limit: Number) -> [Profile]
+    - return highest rated profiles, limited by count
+
+  _searchByKeywords(keywords: [String]) -> [Profile]
+    - return profiles matching keywords in bio or company
+
+  _getByCompany(company: String) -> [Profile]
+    - return profiles from specific company
+
+  _getActive() -> [Profile]
+    - return active profiles
+
+operational principle
+  Profiles extend user information with details and expertise. After create(profile: "p1", userEntity: "user123", profileType: "expert", bio: "AI researcher", timezone: "UTC") then Profile._getByType(profileType: "expert") returns the profile and other profiles of type "expert".

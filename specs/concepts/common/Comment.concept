@@ -1,0 +1,37 @@
+<concept_spec>
+
+concept Comment
+
+purpose
+  enable threaded discussions and feedback on any platform entity
+
+state
+  a set of Comments with
+    an id String
+    a content String
+    an optional parentCommentId String
+    an isEdited Flag
+    an optional metadata Object
+    a createdAt Date
+    an updatedAt Date
+
+actions
+  create(comment: String, entityType: String, entityId: String, authorEntity: String, content: String, parentComment: String?, metadata: Object?) -> Comment | {error}
+  update(comment: String, content: String) -> Comment | {error}
+  delete(comment: String) -> {success: Boolean} | {error}
+  reply(comment: String, entityType: String, entityId: String, authorEntity: String, content: String, parentComment: String) -> Comment | {error}
+
+queries
+  _getByComment(comment: String) -> [Comment]
+  _getByTarget(entityType: String, entityId: String) -> [Comment]
+  _getByAuthor(authorEntity: String) -> [Comment]
+  _getTopLevelComments(entityType: String, entityId: String) -> [Comment]
+  _getReplies(parentComment: String) -> [Comment]
+  _getRecentComments(limit: Number) -> [Comment]
+  _searchByContent(searchTerm: String) -> [Comment]
+  _getCommentThread(entityType: String, entityId: String) -> [Comment]
+
+operational principle
+  Comments enable discussions on any entity with support for threaded replies. After create(comment: "c1", entityType: "project", entityId: "p1", authorEntity: "user1", content: "Great project!") and reply(comment: "c2", entityType: "project", entityId: "p1", authorEntity: "user2", content: "I agree!", parentComment: "c1"), then _getReplies(parentComment: "c1") includes comment "c2".
+
+</concept_spec>

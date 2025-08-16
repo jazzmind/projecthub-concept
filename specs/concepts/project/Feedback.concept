@@ -1,0 +1,34 @@
+<concept_spec>
+
+concept Feedback
+
+purpose
+  manage feedback on assignments or deliverables, independent of assignment concept
+
+state
+  a set of Feedback with
+    an id String
+    an assignment String
+    an author String
+    an optional rating Number
+    a comment String
+    a createdAt Date
+
+actions
+  addFeedback(assignment: String, author: String, rating: Number?, comment: String) -> Feedback | {error}
+    - add feedback entry
+
+  deleteFeedback(id: String) -> {success: Boolean} | {error}
+    - delete feedback entry
+
+queries
+  _getByAssignment(assignment: String) -> [Feedback]
+    - return feedback for assignment
+
+  _getByAuthor(author: String) -> [Feedback]
+    - return feedback by author
+
+operational principle
+  Feedback is independent. After addFeedback(assignment: "a1", author: "u1", rating: 5, comment: "Well done"), then _getByAssignment("a1") includes the feedback.
+
+</concept_spec>

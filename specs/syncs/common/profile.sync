@@ -1,0 +1,98 @@
+<sync_spec>
+
+sync CreateProfile
+when
+    API.request (method: "POST", path: "/api/profiles", userEntity: userEntity, profileType: profileType, bio: bio, title: title?, company: company?, timezone: timezone?) : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    userId = userEntity or Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: context) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.profiles.create = true
+then
+    Profile.create (profile: profileId, userEntity: userEntity, profileType: profileType, bio: bio, title: title, company: company, timezone: timezone)
+
+sync CreateProfileSuccess
+when
+    API.request (method: "POST", path: "/api/profiles") : (request: request)
+    Profile.create (profile: profileId) : (profile: profile)
+then
+    API.respond (request: request, status: 201, body: {profile: profile})
+
+
+sync UpdateProfile
+when
+    API.request (method: "PUT", path: "/api/profiles/:profileId", bio: bio?, title: title?, company: company?, linkedinUrl: linkedinUrl?, website: website?, timezone: timezone?, hourlyRate: hourlyRate?) : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Profile._getByProfile (profile: profileId) : (profile: profile)
+    profile.userEntity = userId or Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: context) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.profiles.update = true
+then
+    Profile.update (profile: profileId, bio: bio, title: title, company: company, linkedinUrl: linkedinUrl, website: website, timezone: timezone, hourlyRate: hourlyRate)
+
+sync UpdateProfileSuccess
+when
+    API.request (method: "PUT", path: "/api/profiles/:profileId") : (request: request)
+    Profile.update (profile: profileId) : (profile: profile)
+then
+    API.respond (request: request, status: 200, body: {profile: profile})
+
+
+sync VerifyProfile
+when
+    API.request (method: "POST", path: "/api/profiles/:profileId/verify") : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: context) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.profiles.verify = true
+then
+    Profile.verify (profile: profileId)
+
+sync VerifyProfileSuccess
+when
+    API.request (method: "POST", path: "/api/profiles/:profileId/verify") : (request: request)
+    Profile.verify (profile: profileId) : (profile: profile)
+then
+    API.respond (request: request, status: 200, body: {profile: profile, message: "Profile verified successfully"})
+
+sync GetProfile
+when
+    API.request (method: "GET", path: "/api/profiles/:profileId") : (request: request)
+where
+    Profile._getByProfile (profile: profileId) : (profile: profile)
+then
+    API.respond (request: request, status: 200, body: {profile: profile})
+
+
+sync GetVerifiedProfiles
+when
+    API.request (method: "GET", path: "/api/profiles/verified") : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: context) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.profiles.read = true
+    Profile._getVerified () : (profiles: profiles)
+then
+    API.respond (request: request, status: 200, body: {profiles: profiles})
+
+sync GetTopRatedProfiles
+when
+    API.request (method: "GET", path: "/api/profiles/top-rated", limit: limit?) : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: context) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.profiles.read = true
+    Profile._getTopRated (limit: limit or 10) : (profiles: profiles)
+then
+    API.respond (request: request, status: 200, body: {profiles: profiles})
+
+</sync_spec>

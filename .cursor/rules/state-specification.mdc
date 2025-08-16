@@ -60,10 +60,10 @@ an element GlobalConfig with
     an apiKey String
 ```
 
-## MongoDB Translation Rules
+## Prisma Translation Rules
 
 ### Collections
-- Each set/subset becomes a MongoDB collection
+- Each set/subset becomes a Prisma table
 - Collection name matches the SSF type name
 - Singletons are collections with exactly one document
 
@@ -74,11 +74,11 @@ an element GlobalConfig with
 - Enumerations become string fields with validation
 
 ### Data Types
-- `String` → MongoDB String
-- `Number` → MongoDB Number/Integer
-- `Flag` → MongoDB Boolean
-- `Date/DateTime` → MongoDB Date (BSON)
-- Object references → MongoDB ObjectId
+- `String` → Prisma String
+- `Number` → Prisma Number/Integer
+- `Flag` → Prisma Boolean
+- `Date/DateTime` → Prisma Date (BSON)
+- Object references → Prisma ObjectId
 
 ### Example Translation
 ```
@@ -89,7 +89,7 @@ a set of Users with
     a followers set of Users
     a status of ACTIVE or INACTIVE
 
-// MongoDB Schema
+// Prisma Schema
 {
   _id: ObjectId,
   name: String,

@@ -1,0 +1,85 @@
+<sync_spec>
+
+sync AttachFileToProject
+when
+    File.upload (file: fileId, filename: filename, originalName: originalName, mimeType: mimeType, size: size, path: path, uploadedBy: ownerEntity, entityType: "project", entityId: projectId) : (file: file)
+where
+    Project._getByProject (project: projectId) : (project: project)
+    project.status = "active"
+then
+    File.attach (file: fileId, attachedEntity: projectId)
+
+sync AutoTagProject
+when
+    Project.create (project: projectId, title: title, description: description, industry: industry, domain: domain) : (project: project)
+where
+    title.contains("React") or description.contains("React") or domain = "Frontend Development"
+then
+    Tag.create (tag: "react-tag", name: "React", color: "#61dafb", category: "technology")
+    Tag.incrementUsage (tag: "react-tag")
+
+sync NotifyProjectComment
+when
+    Comment.create (comment: commentId, entityType: "project", entityId: projectId, authorEntity: authorEntity, content: content) : (comment: comment)
+where
+    Project._getByProject (project: projectId) : (project: project)
+    Membership._getActiveByTarget (targetEntity: projectId) : (teamMembers: teamMembers)
+    teamMembers.length > 0
+then
+    Notification.create (notification: notificationId, recipientEntity: teamMembers[0].memberEntity, title: "New Project Comment", message: "New comment on project: " + content, notificationType: "project_comment")
+
+sync IncrementTagUsage
+when
+    Tag.create (tag: tagId, name: tagName) : (tag: tag)
+then
+    Tag.incrementUsage (tag: tagId)
+
+sync InitializeTeamDiscussion
+when
+    Team.create (team: teamId, name: teamName, description: description) : (team: team)
+where
+    User._getById (user: creator) : (user: user)
+    user.isActive = true
+then
+    Comment.create (comment: commentId, entityType: "team", entityId: teamId, authorEntity: creator, content: "Team discussion started for " + teamName)
+
+sync UpdateFileVisibility
+when
+    Project.update (project: projectId, status: status) : (project: project)
+where
+    status = "published"
+    File._getByAttachedEntity (attachedEntity: projectId) : (files: files)
+    files.length > 0
+then
+    File.updateVisibility (file: files[0].file, visibility: "public")
+
+sync InitializeAssignmentDiscussion
+when
+    Assignment.assign (assignment: assignmentId, task: task, assignee: assignee, assigner: assigner) : (assignment: assignment)
+where
+    User._getById (user: assignee) : (assigneeUser: assigneeUser)
+    User._getById (user: assigner) : (assignerUser: assignerUser)
+    assigneeUser.isActive = true and assignerUser.isActive = true
+then
+    Comment.create (comment: commentId, entityType: "assignment", entityId: assignmentId, authorEntity: assigner, content: "Assignment created: " + task)
+
+sync ArchiveEntityComments
+when
+    Project.delete (project: projectId) : (success: success)
+where
+    success = true
+    Comment._getByTarget (entityType: "project", entityId: projectId) : (comments: comments)
+    comments.length > 0
+then
+    Comment.delete (comment: comments[0].comment)
+
+sync GenerateProjectDocumentation
+when
+    Project.update (project: projectId, status: status) : (project: project)
+where
+    status = "completed"
+    Project._getByProject (project: projectId) : (projectDetails: projectDetails)
+then
+    File.upload (file: documentationFileId, filename: "project-documentation.md", originalName: "Project Documentation", mimeType: "text/markdown", size: 1024, path: "/docs/" + projectId + ".md", uploadedBy: "system", entityType: "project", entityId: projectId)
+
+</sync_spec>

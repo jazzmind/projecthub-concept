@@ -1,0 +1,49 @@
+<concept_spec>
+
+concept Skill
+
+purpose
+  manage generic skills and competencies for any owner entity (profiles, projects, teams, etc.)
+
+state
+  a set of Skills with
+    an id String
+    a name String
+    an optional kind String
+    an optional level String
+    an isExpertise Flag
+    an optional yearsExperience Number
+    an optional proficiency String
+    a createdAt Date
+    an updatedAt Date
+
+actions
+  create(ownerEntity: String, ownerType: String, name: String, kind: String?, level: String?, isExpertise: Flag?, yearsExperience: Number?, proficiency: String?) -> Skill | {error}
+    - create a new skill mapping for an owner entity
+    - prevent duplicates for the same (ownerEntity, name, kind)
+
+  update(ownerEntity: String, name: String, kind: String?, level: String?, isExpertise: Flag?, yearsExperience: Number?, proficiency: String?) -> Skill | {error}
+    - update an existing skill mapping identified by (ownerEntity, name, kind)
+
+  delete(ownerEntity: String, name: String, kind: String?) -> {success: Boolean} | {error}
+    - delete a skill mapping for an owner entity
+
+queries
+  _getByOwner(ownerEntity: String) -> [Skill]
+    - return all skills for the owner entity
+
+  _getByName(name: String, kind: String?) -> [Skill]
+    - return all skill mappings matching name (and optional kind)
+
+  _getExpertiseByName(name: String) -> [Skill]
+    - return skills with isExpertise=true for the given name
+
+  _getOwnersByNames(names: [String], kind: String?) -> [Skill]
+    - return skill mappings for owners that have any of the given names
+
+operational principle
+  Skills provide a generic capability mapping independent of any specific concept. After create(ownerEntity: "profile_123", ownerType: "profile", name: "react", level: "expert", isExpertise: true), then _getExpertiseByName(name: "react") includes the created mapping.
+
+</concept_spec>
+
+

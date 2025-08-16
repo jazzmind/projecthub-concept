@@ -32,8 +32,8 @@ Following these critical user-defined rules that must be strictly observed:
 - **Operating System**: macOS (darwin 24.5.0)
 - **Shell**: /bin/zsh  
 - **Node Version**: 18+ required
-- **Runtime**: Deno preferred for simplified imports
-- **Database**: MongoDB with TypeScript driver
+- **Runtime**: Node.js preferred for simplified imports
+- **Database**: Prisma with TypeScript driver
 
 ## Code Quality
 - **TypeScript Strict**: Always use strict type checking

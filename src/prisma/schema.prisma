@@ -11,22 +11,30 @@ datasource db {
 
 // Better-auth required models (kept for compatibility)
 model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
+  id                     String    @id @default(cuid())
+  type                   String?   @default("oauth") // Make optional with default
+  userId                 String
+  provider               String?   // Better Auth sends this as "providerId" 
+  providerId             String?   // Better Auth field name
+  accountId              String    // Better Auth field name
+  refreshToken           String?   @db.Text  // Better Auth field name
+  accessToken            String?   @db.Text  // Better Auth field name
+  accessTokenExpiresAt   DateTime?
+  idToken                String?   @db.Text  // Better Auth field name
+
+  refresh_token          String?   @db.Text
+  access_token           String?   @db.Text
+  expires_at             Int?
+  token_type             String?
+  scope                  String?
+  id_token               String?   @db.Text
+  session_state          String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerAccountId])
+  @@unique([providerId, accountId])
   @@map("account")
 }
 
@@ -39,27 +47,57 @@ model VerificationToken {
   @@map("verification_token")
 }
 
+// Better-auth specific models
+model verification {
+  id        String   @id @default(cuid())
+  identifier String
+  value     String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([identifier, value])
+}
+
+// Better-auth session model (separate from our concept session)
+model AuthSession {
+  id           String    @id @default(cuid()) @map("auth_session_pkey")
+  userId       String
+  token        String    @unique @map("auth_session_token_key")
+  expiresAt    DateTime
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  
+  user User @relation("BetterAuthSessions", fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("auth_session")
+}
+
 // Generic Concept Models
 
-// User concept - Generic identity
+// User concept - Generic identity (clean of auth-specific fields)
 model User {
   id              String    @id @default(cuid())
-  user            String    @unique // The concept's identifier field
   email           String    @unique
-  name            String
-  avatar          String?
-  isEmailVerified Boolean   @default(false)
+  name            String?
+  image           String?   // Clean concept field for user's image/avatar
   lastLoginAt     DateTime?
   isActive        Boolean   @default(true)
   isSuspended     Boolean   @default(false)
   suspendedAt     DateTime?
   suspendedReason String?
-  preferences     Json?
+  preferences     Json?     @default("{}")
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
+  // Better-auth specific fields (kept separate for compatibility)
+  emailVerified   Boolean?  // For better-auth compatibility only
+  
   // Better-auth relations (kept for compatibility)
   accounts Account[]
+  sessions AuthSession[] @relation("BetterAuthSessions")
 
   @@map("user")
 }
@@ -67,11 +105,13 @@ model User {
 // Session concept - Manages active sessions with context
 model Session {
   id              String    @id @default(cuid())
-  sessionKey      String    @unique
+  sessionKey      String?   @unique // Optional for better-auth compatibility
+  token           String?   @unique // For better-auth session token
+  userId          String?   // For better-auth user relation
   currentContext  String?
   userAgent       String?
   ipAddress       String?
-  loginMethod     String
+  loginMethod     String?   @default("email") // Optional with default
   isActive        Boolean   @default(true)
   lastActivityAt  DateTime  @default(now())
   expiresAt       DateTime?
@@ -85,7 +125,6 @@ model Session {
 // Role concept - Defines permission sets
 model Role {
   id          String   @id @default(cuid())
-  name        String
   displayName String
   description String
   scope       String
@@ -95,16 +134,18 @@ model Role {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@unique([name, scope])
+  @@unique([displayName, scope])
   @@map("role")
 }
 
 // Membership concept - Manages associations between entities
 model Membership {
   id                 String    @id @default(cuid())
-  memberEntity       String
-  targetEntity       String
-  roleEntity         String
+  memberEntityType   String
+  memberEntityId     String
+  targetEntityType   String
+  targetEntityId     String
+  roleEntityId       String
   isActive           Boolean   @default(false)
   joinedAt           DateTime?
   leftAt             DateTime?
@@ -117,14 +158,13 @@ model Membership {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  @@unique([memberEntity, targetEntity])
+  @@unique([memberEntityType, memberEntityId, targetEntityType, targetEntityId, roleEntityId])
   @@map("membership")
 }
 
 // Organization concept - Generic organizational entities
 model Organization {
   id               String   @id @default(cuid())
-  organization     String   @unique // The concept's identifier field
   name             String
   description      String
   domain           String   @unique
@@ -143,19 +183,16 @@ model Organization {
 // Project concept - Generic project specifications
 model Project {
   id                 String   @id @default(cuid())
-  project            String   @unique // The concept's identifier field
   title              String
   description        String
+  image              String?
   scope              String
-  learningObjectives String[]
   industry           String
   domain             String
   difficulty         String
   estimatedHours     Int
-  requiredSkills     String[]
   deliverables       String[]
   status             String   @default("draft")
-  tags               String[]
   templateType       String?
   aiGenerated        Boolean  @default(false)
   sourceData         Json?
@@ -168,7 +205,6 @@ model Project {
 // Campaign concept - Generic educational campaigns
 model Campaign {
   id                 String   @id @default(cuid())
-  campaign           String   @unique // The concept's identifier field
   name               String
   description        String
   learningObjectives String[]
@@ -187,40 +223,11 @@ model Campaign {
   @@map("campaign")
 }
 
-// Expert concept - Generic domain experts
-model Expert {
-  id              String   @id @default(cuid())
-  expert          String   @unique // The concept's identifier field
-  name            String
-  email           String
-  bio             String?
-  expertiseDomains String[]
-  availability    String   @default("available")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
 
-  @@map("expert")
-}
-
-// IndustryPartner concept - Generic industry contacts
-model IndustryPartner {
-  id               String   @id @default(cuid())
-  industryPartner  String   @unique // The concept's identifier field
-  name             String
-  email            String
-  title            String
-  focusAreas       String[]
-  experienceLevel  String
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  @@map("industry_partner")
-}
 
 // Team concept - Generic collaborative teams
 model Team {
   id          String   @id @default(cuid())
-  team        String   @unique // The concept's identifier field
   name        String
   description String?
   status      String   @default("forming")
@@ -233,10 +240,11 @@ model Team {
 // Assignment concept - Generic task assignments
 model Assignment {
   id              String    @id @default(cuid())
-  assignment      String    @unique // The concept's identifier field
+  assigneeEntityType String
+  assigneeEntityId String
+  assignerEntityType String
+  assignerEntityId String
   task            String
-  assignee        String
-  assigner        String?
   status          String    @default("pending")
   dueDate         DateTime?
   startDate       DateTime?
@@ -251,22 +259,19 @@ model Assignment {
 }
 
 // ProgressNotes for Assignment concept
-model ProgressNote {
+model Note {
   id         String   @id @default(cuid())
-  assignment String
   note       String
   author     String
   noteType   String
   createdAt  DateTime @default(now())
 
-  @@map("progress_note")
+  @@map("note")
 }
 
 // Feedback for Assignment concept
 model Feedback {
   id         String   @id @default(cuid())
-  assignment String
-  author     String
   rating     Float?
   comment    String
   createdAt  DateTime @default(now())
@@ -283,7 +288,6 @@ model APIRequest {
   params    Json?
   query     Json?
   headers   Json?
-  userId    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -301,4 +305,154 @@ model APIResponse {
   updatedAt  DateTime @updatedAt
 
   @@map("api_response")
+}
+
+// Profile concept - Extended user information for specific roles
+model Profile {
+  id            String    @id @default(cuid())
+  profileType   String    // expert, industry_partner, etc.
+  bio           String
+  title         String?
+  company       String?
+  linkedinUrl   String?
+  website       String?
+  timezone      String    @default("UTC")
+  hourlyRate    Float?
+  rating        Float     @default(0)
+  isActive      Boolean   @default(true)
+  isVerified    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Legacy relations retained only if needed; prefer generic Skill concept via ownerType="profile"
+  // Removed ProfileSkill and ProfileLanguage to align with concept independence
+
+  @@index([profileType])
+  @@index([isActive])
+  @@index([isVerified])
+  @@map("profile")
+}
+
+// ProfileSkill and ProfileLanguage removed per concept independence rules
+
+// Generic Skill concept - independent skills attached to any owner entity
+model Skill {
+  id              String   @id @default(cuid())
+  name            String
+  kind            String?
+  level           String?
+  isExpertise     Boolean  @default(false)
+  yearsExperience Int      @default(0)
+  proficiency     String?
+  // tags are modeled via Tag concept and Relationships, not denormalized here
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([name, kind])
+  @@index([name])
+  @@index([isExpertise])
+  @@map("skill")
+}
+
+// Generic Relationship concept - maps relationships between any two entities
+model Relationship {
+  id           String   @id @default(cuid())
+  fromEntityType String
+  fromEntityId String
+  toEntityType String
+  toEntityId String
+  relationType String
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([fromEntityType, fromEntityId, toEntityType, toEntityId, relationType])
+  @@index([fromEntityType, fromEntityId, relationType])
+  @@index([toEntityType, toEntityId, relationType])
+  @@map("relationship")
+}
+
+// Notification concept - Manage notifications and alerts
+model Notification {
+  id              String   @id @default(cuid())
+  title           String
+  message         String
+  notificationType String  // info, warning, error, success
+  isRead          Boolean  @default(false)
+  readAt          DateTime?
+  expiresAt       DateTime?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([isRead])
+  @@index([notificationType])
+  @@map("notification")
+}
+
+// File concept - Manage files and attachments
+model File {
+  id           String   @id @default(cuid())
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  path         String
+  isPublic     Boolean  @default(false)
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([isPublic])
+  @@map("file")
+}
+
+// Comment concept - Manage comments and discussions
+model Comment {
+  id           String    @id @default(cuid())
+  content      String
+  parentCommentId String?  // Reference to parent comment for threading
+  isEdited     Boolean   @default(false)
+  editedAt     DateTime?
+  reactions    Json?     // Store reaction counts
+  metadata     Json?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("comment")
+}
+
+// Setting concept - Manage settings and preferences
+model Setting {
+  id          String   @id @default(cuid())
+  category    String   // ui, notification, security, etc.
+  key         String
+  value       Json
+  isPublic    Boolean  @default(false)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([category, key])
+  @@index([category])
+  @@map("setting")
+}
+
+// Tag concept - Manage tags and categories
+model Tag {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  category    String?
+  color       String?
+  isActive    Boolean  @default(true)
+  usage_count Int      @default(0)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+  @@index([name])
+  @@map("tag")
 }

@@ -1,0 +1,40 @@
+<concept_spec>
+
+concept Setting
+
+purpose
+  store configuration and preference data for entities with scoped access
+
+state
+  a set of Settings with
+    an id String
+    an ownerEntity String
+    a key String
+    a value Object
+    a settingType String
+    a scope String
+    an isPublic Flag
+    an optional metadata Object
+    a createdAt Date
+    an updatedAt Date
+
+actions
+  set(setting: String, ownerEntity: String, key: String, value: Object, settingType: String, scope: String?, isPublic: Flag?, metadata: Object?) -> Setting | {error}
+  update(setting: String, value: Object, metadata: Object?) -> Setting | {error}
+  delete(setting: String) -> {success: Boolean} | {error}
+  bulkSet(ownerEntity: String, settings: Array) -> {count: Number} | {error}
+
+queries
+  _getBySetting(setting: String) -> [Setting]
+  _getByOwner(ownerEntity: String) -> [Setting]
+  _getByKey(ownerEntity: String, key: String) -> [Setting]
+  _getByScope(ownerEntity: String, scope: String) -> [Setting]
+  _getPublicSettings(ownerEntity: String) -> [Setting]
+  _getByType(settingType: String) -> [Setting]
+  _getValue(ownerEntity: String, key: String, scope: String?) -> [Object]
+  _getAllSettings() -> [Setting]
+
+operational principle
+  Settings store key-value configuration data with scoped access control. After set(setting: "s1", ownerEntity: "user1", key: "theme", value: "dark", settingType: "preference", scope: "user") and _getValue(ownerEntity: "user1", key: "theme", scope: "user"), the value "dark" is returned.
+
+</concept_spec>

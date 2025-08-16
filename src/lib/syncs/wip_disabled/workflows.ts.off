@@ -1,0 +1,374 @@
+import { actions, Frames, Vars } from "@/lib/engine";
+import { APIConcept } from "@/lib/concepts/common/api";
+import { OrganizationConcept } from "@/lib/concepts/common/organization";
+import { RoleConcept } from "@/lib/concepts/common/role";
+import { AssignmentConcept } from "@/lib/concepts/wip/assignment";
+import { ProjectConcept } from "@/lib/concepts/project/project";
+import { TeamConcept } from "@/lib/concepts/common/team";
+import { CampaignConcept } from "@/lib/concepts/project/campaign";
+import { UserConcept } from "@/lib/concepts/common/user";
+import { MembershipConcept } from "@/lib/concepts/common/membership";
+import { SessionConcept } from "@/lib/concepts/common/session";
+
+/**
+ * Complex Workflow Synchronizations
+ * 
+ * Handles multi-concept workflows and orchestrated operations
+ */
+
+export function makeWorkflowSyncs(
+  API: APIConcept,
+  Organization: OrganizationConcept,
+  Role: RoleConcept,
+  Assignment: AssignmentConcept,
+  Project: ProjectConcept,
+  Team: TeamConcept,
+  Campaign: CampaignConcept,
+  User: UserConcept,
+  Membership: MembershipConcept,
+  Session: SessionConcept,
+) {
+
+  // Initialize platform roles when first platform organization is created
+  const InitializePlatformRoles = ({ platformId, organization }: Vars) => ({
+    when: actions(
+      [Organization.create as any, { 
+        organization: platformId,
+        name: "Platform",
+        organizationType: "platform"
+      }, { organization }],
+    ),
+    then: actions(
+      [Role.create as any, { 
+        name: "platform_admin",
+        displayName: "Platform Administrator",
+        description: "Full platform administration",
+        scope: "platform",
+        permissions: "platformAdminPermissions"
+      }],
+      [Role.create as any, { 
+        name: "org_admin",
+        displayName: "Organization Administrator",
+        description: "Organization management",
+        scope: "context",
+        permissions: "organizationAdminPermissions"
+      }],
+      [Role.create as any, { 
+        name: "team_leader",
+        displayName: "Team Leader",
+        description: "Team leadership and management",
+        scope: "context",
+        permissions: "teamLeaderPermissions"
+      }],
+      [Role.create as any, { 
+        name: "team_member",
+        displayName: "Team Member",
+        description: "Basic team participation",
+        scope: "context",
+        permissions: "teamMemberPermissions"
+      }],
+      [Role.create as any, { 
+        name: "guest",
+        displayName: "Guest",
+        description: "Limited read-only access",
+        scope: "context",
+        permissions: "guestPermissions"
+      }],
+    ),
+  });
+
+  // Assign project to team workflow
+  const AssignProjectToTeam = ({ 
+    request,
+    projectId,
+    teamId,
+    dueDate,
+    assignerId,
+    assignmentId
+  }: Vars) => ({
+    when: actions(
+      [API.request as any, { 
+        method: "POST", 
+        path: "/api/assignments/projects",
+        projectId,
+        teamId,
+        dueDate
+      }, { request }],
+    ),
+    where: (frames: Frames) => {
+      const result = new Frames();
+      for (const frame of frames) {
+        const currentUser = (frame as any).headers?.['x-user-id'];
+        const sessionId = (frame as any).headers?.['x-session-key'];
+        
+        // Simplified permission check - assume entities exist and are valid
+        const assignId = `assignment_${Date.now()}_${Math.random()}`;
+        result.push({
+          ...(frame as any),
+          [assignerId]: currentUser,
+          [assignmentId]: assignId
+        } as any);
+      }
+      return result;
+    },
+    then: actions(
+      [Assignment.assign as any, { 
+        assignment: assignmentId,
+        task: String(projectId),
+        assignee: String(teamId),
+        assigner: String(assignerId)
+      }],
+    ),
+  });
+
+  // Project assignment success response
+  const AssignProjectToTeamSuccess = ({ request, assignment }: Vars) => ({
+    when: actions(
+      [API.request as any, { method: "POST", path: "/api/assignments/projects" }, { request }],
+      [Assignment.assign as any, { 
+        task: "project_assignment"
+      }, { assignment }],
+    ),
+    then: actions(
+      [API.respond as any, { 
+        request,
+        status: 201,
+        body: { assignment, message: "Project assigned to team successfully" }
+      }],
+    ),
+  });
+
+  // Team accepts project assignment
+  const TeamAcceptsProjectAssignment = ({ request, assignmentId, userId }: Vars) => ({
+    when: actions(
+      [API.request as any, { 
+        method: "POST", 
+        path: "/api/assignments/:assignmentId/team-accept",
+        assignmentId
+      }, { request }],
+    ),
+    where: (frames: Frames) => {
+      const result = new Frames();
+      for (const frame of frames) {
+        const currentUser = (frame as any).headers?.['x-user-id'];
+        // Simplified - assume user has permission to accept assignment
+        result.push({
+          ...(frame as any),
+          [userId]: currentUser
+        } as any);
+      }
+      return result;
+    },
+    then: actions(
+      [Assignment.updateStatus as any, { assignment: assignmentId, status: "accepted" }],
+    ),
+  });
+
+  // User registration with organization invite
+  const UserRegistrationWithOrganizationInvite = ({ 
+    request,
+    email,
+    name,
+    organizationDomain,
+    userIdentifier,
+    organization
+  }: Vars) => ({
+    when: actions(
+      [API.request as any, { 
+        method: "POST", 
+        path: "/api/auth/register-with-org",
+        email,
+        name,
+        organizationDomain
+      }, { request }],
+    ),
+    where: (frames: Frames) => {
+      const result = new Frames();
+      for (const frame of frames) {
+        // Simplified - assume organization exists and is valid
+        const userId = `user_${Date.now()}_${Math.random()}`;
+        const orgData = { id: `org_${String(organizationDomain)}`, isActive: true };
+        result.push({
+          ...(frame as any),
+          [userIdentifier]: userId,
+          [organization]: orgData
+        } as any);
+      }
+      return result;
+    },
+    then: actions(
+      [User.register as any, { user: userIdentifier, email, name }],
+    ),
+  });
+
+  // Auto-invite to organization
+  const AutoInviteToOrganization = ({ 
+    request, 
+    userIdentifier, 
+    organization, 
+    user 
+  }: Vars) => ({
+    when: actions(
+      [API.request as any, { method: "POST", path: "/api/auth/register-with-org" }, { request }],
+      [User.register as any, { user: userIdentifier }, { user }],
+    ),
+    then: actions(
+      [Membership.invite as any, { 
+        memberEntity: userIdentifier,
+        targetEntity: (organization as unknown) as symbol,
+        roleEntity: "team_member",
+        invitedBy: "system"
+      }],
+    ),
+  });
+
+  // Auto-accept organization membership
+  const AutoAcceptOrganizationMembership = ({ 
+    request, 
+    userIdentifier, 
+    organizationId, 
+    user, 
+    membership 
+  }: Vars) => ({
+    when: actions(
+      [API.request as any, { method: "POST", path: "/api/auth/register-with-org" }, { request }],
+      [User.register as any, { user: userIdentifier }, { user }],
+      [Membership.invite as any, { 
+        memberEntity: userIdentifier,
+        targetEntity: organizationId,
+        roleEntity: "team_member"
+      }, { membership }],
+    ),
+    then: actions(
+      [Membership.accept as any, { 
+        memberEntity: userIdentifier,
+        targetEntity: organizationId
+      }],
+      [API.respond as any, { 
+        request,
+        status: 201,
+        body: { user, message: "User registered and added to organization" }
+      }],
+    ),
+  });
+
+  // Create team with initial project
+  const CreateTeamWithInitialProject = ({ 
+    request,
+    name,
+    description,
+    initialProjectId,
+    teamId,
+    userId
+  }: Vars) => ({
+    when: actions(
+      [API.request as any, { 
+        method: "POST", 
+        path: "/api/teams/with-project",
+        name,
+        description,
+        initialProjectId
+      }, { request }],
+    ),
+    where: (frames: Frames) => {
+      const result = new Frames();
+      for (const frame of frames) {
+        const currentUser = (frame as any).headers?.['x-user-id'];
+        // Simplified - assume project exists and is published
+        const id = `team_${Date.now()}_${Math.random()}`;
+        result.push({
+          ...(frame as any),
+          [teamId]: id,
+          [userId]: currentUser
+        } as any);
+      }
+      return result;
+    },
+    then: actions(
+      [Team.create as any, { 
+        team: teamId,
+        name,
+        description
+      }],
+    ),
+  });
+
+  // Assign initial project to new team
+  const AssignInitialProjectToNewTeam = ({ 
+    request, 
+    teamId, 
+    initialProjectId, 
+    userId, 
+    team, 
+    assignmentId 
+  }: Vars) => ({
+    when: actions(
+      [API.request as any, { method: "POST", path: "/api/teams/with-project" }, { request }],
+      [Team.create as any, { team: teamId }, { team }],
+    ),
+    where: (frames: Frames) => {
+      const result = new Frames();
+      for (const frame of frames) {
+        if ((frame as any)[initialProjectId]) {
+          const assignId = `assignment_${Date.now()}_${Math.random()}`;
+          result.push({
+            ...(frame as any),
+            [assignmentId]: assignId
+          } as any);
+        }
+      }
+      return result;
+    },
+    then: actions(
+      [Membership.invite as any, { 
+        memberEntity: userId,
+        targetEntity: teamId,
+        roleEntity: "team_leader",
+        invitedBy: userId
+      }],
+      [Assignment.assign as any, { 
+        assignment: assignmentId,
+        task: String(initialProjectId),
+        assignee: String(teamId),
+        assigner: String(userId)
+      }],
+    ),
+  });
+
+  // Complete project assignment workflow
+  const CompleteProjectAssignmentWorkflow = ({ assignmentId, assignment }: Vars) => ({
+    when: actions(
+      [Assignment.updateStatus as any, { assignment: assignmentId, status: "completed" }, { assignment }],
+    ),
+    where: (frames: Frames) => {
+      const result = new Frames();
+      for (const frame of frames) {
+        const assignmentData = (frame as any)[assignment];
+        if (assignmentData && assignmentData.assignmentType === "project_assignment") {
+          result.push(frame as any);
+        }
+      }
+      return result;
+    },
+    then: actions(
+      [Assignment.addProgress as any, { 
+        assignment: assignmentId,
+        note: "Project assignment completed successfully",
+        author: "system"
+      }],
+    ),
+  });
+
+  return {
+    InitializePlatformRoles,
+    AssignProjectToTeam,
+    AssignProjectToTeamSuccess,
+    TeamAcceptsProjectAssignment,
+    UserRegistrationWithOrganizationInvite,
+    AutoInviteToOrganization,
+    AutoAcceptOrganizationMembership,
+    CreateTeamWithInitialProject,
+    AssignInitialProjectToNewTeam,
+    CompleteProjectAssignmentWorkflow,
+  } as const;
+}

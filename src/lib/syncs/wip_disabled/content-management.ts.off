@@ -1,0 +1,307 @@
+import { actions, Frames, Vars } from "@/lib/engine";
+import { FileConcept } from "@/lib/concepts/common/file";
+// import { CommentConcept } from "@/lib/concepts/wip_disabled/comment";
+// import { TagConcept } from "@/lib/concepts/wip_disabled/tag";
+import { ProjectConcept } from "@/lib/concepts/project/project";
+import { TeamConcept } from "@/lib/concepts/common/team";
+import { CampaignConcept } from "@/lib/concepts/project/campaign";
+// import { NotificationConcept } from "@/lib/concepts/wip_disabled/notification";
+
+/**
+ * Content Management Synchronizations
+ * 
+ * Handles file attachments, comments, tagging, and content organization
+ */
+
+export function makeContentManagementSyncs(
+  File: FileConcept,
+  Comment: CommentConcept,
+  Tag: TagConcept,
+  Project: ProjectConcept,
+  Team: TeamConcept,
+  Campaign: CampaignConcept,
+  Notification: NotificationConcept,
+) {
+  
+  // Auto-attach files to projects when uploaded
+  const AttachFileToProject = ({ file, projectId, ownerEntity }: Vars) => ({
+    when: actions(
+      [File.upload as any, { 
+        file,
+        ownerEntity,
+        attachedEntity: projectId 
+      }, { file }],
+    ),
+    then: actions(
+      [File.attach as any, { file, attachedEntity: projectId }],
+    ),
+  });
+
+  // Auto-tag projects based on content
+  const AutoTagProject = ({ project, title, description, industry, domain }: Vars) => ({
+    when: actions(
+      [Project.create as any, { project, title, description, industry, domain }, { project }],
+    ),
+    where: (frames: Frames): Frames => {
+      const result = new Frames();
+      for (const frame of frames) {
+        // Auto-generate tags from project properties
+        const autoTags = [];
+        
+        // Add industry tag
+        if ((frame as any)[industry]) {
+          autoTags.push(`industry:${(frame as any)[industry]}`);
+        }
+        
+        // Add domain tag
+        if ((frame as any)[domain]) {
+          autoTags.push(`domain:${(frame as any)[domain]}`);
+        }
+        
+        // Extract keywords from title/description (simplified)
+        const titleWords = ((frame as any)[title] || '').toLowerCase().split(' ');
+        const keywordTags = titleWords
+          .filter((word: string) => word.length > 4)
+          .slice(0, 3)
+          .map((word: string) => `keyword:${word}`);
+        
+        autoTags.push(...keywordTags);
+        
+        result.push({
+          ...(frame as any),
+          autoTags
+        } as any);
+      }
+      return result;
+    },
+    then: actions(
+      // This would need to iterate over tags - simplified here
+      [Tag.create as any, {
+        tag: `tag_${Date.now()}_auto`,
+        name: "auto-generated-tag",
+        category: "project",
+        isSystemTag: true
+      }],
+    ),
+  });
+
+  // Notify team members when comment is added to project
+  const NotifyProjectComment = ({ comment, targetEntity, authorEntity, teamMembers }: Vars) => ({
+    when: actions(
+      [Comment.create as any, { 
+        comment,
+        targetEntity,
+        authorEntity,
+        commentType: "project_discussion" 
+      }, { comment }],
+    ),
+    where: (frames: Frames): Frames => {
+      const result = new Frames();
+      for (const frame of frames) {
+        // Find teams working on this project
+        const projectAssignments: any[] = []; // Assignment._getByTask({ task: targetEntity });
+        const teams = projectAssignments
+          .filter((a: any) => a.assignmentType === "project_assignment")
+          .map((a: any) => a.targetEntity);
+        
+        // Get all team members
+        const allMembers: any[] = [];
+        teams.forEach((teamId: string) => {
+          const members: any[] = []; // Membership._getActiveByTarget({ targetEntity: teamId });
+          allMembers.push(...members);
+        });
+        
+        result.push({
+          ...(frame as any),
+          [teamMembers]: allMembers.filter(m => m.memberEntity !== (frame as any)[authorEntity])
+        } as any);
+      }
+      return result;
+    },
+    then: actions(
+      [Notification.create as any, {
+        notification: `notif_${Date.now()}_comment`,
+        recipientEntity: "team_member", // Would be dynamic
+        title: "New Project Comment",
+        message: `New comment added to project discussion`,
+        notificationType: "project_comment",
+        sourceEntity: authorEntity,
+        actionUrl: `/projects/${String(targetEntity)}#comments`
+      }],
+    ),
+  });
+
+  // Auto-increment tag usage when project is tagged
+  const IncrementTagUsage = ({ tag }: Vars) => ({
+    when: actions(
+      [Project.update as any, { tags: [tag] }, {}],
+      [Team.create as any, { tags: [tag] }, {}],
+      [Campaign.create as any, { tags: [tag] }, {}],
+    ),
+    then: actions(
+      [Tag.incrementUsage as any, { tag }],
+    ),
+  });
+
+  // Create discussion thread for new teams
+  const InitializeTeamDiscussion = ({ team, creator, comment }: Vars) => ({
+    when: actions(
+      [Team.create as any, { team }, { team }],
+    ),
+    where: (frames: Frames): Frames => {
+      const result = new Frames();
+      for (const frame of frames) {
+        const commentId = `comment_${Date.now()}_team_init`;
+        result.push({
+          ...(frame as any),
+          [comment]: commentId
+        } as any);
+      }
+      return result;
+    },
+    then: actions(
+      [Comment.create as any, {
+        comment,
+        targetEntity: team,
+        authorEntity: creator,
+        content: "Team discussion thread initialized. Welcome to the team!",
+        commentType: "team_welcome"
+      }],
+    ),
+  });
+
+  // Handle file visibility changes based on project status
+  const UpdateFileVisibility = ({ projectId, status, files }: Vars) => ({
+    when: actions(
+      [Project._getById as any, { id: projectId }, {}],
+    ),
+    where: (frames: Frames): Frames => {
+      const result = new Frames();
+      for (const frame of frames) {
+        const projectFiles = File._getByAttachedEntity({ entityType: "project", entityId: (frame as any)[projectId] });
+        const newVisibility = (frame as any)[status] === "published" ? "public" : "private";
+        
+        result.push({
+          ...(frame as any),
+          [files]: projectFiles,
+          newVisibility
+        } as any);
+      }
+      return result;
+    },
+    then: actions(
+      // This would need to iterate over files - simplified here
+      [File.updateVisibility as any, {
+        file: "file_id",
+        visibility: "newVisibility"
+      }],
+    ),
+  });
+
+  // Create comment threads for assignments
+  // NOTE: Temporarily disabled due to missing Project.assign method
+  /*
+  const InitializeAssignmentDiscussion = ({ assignment, assignee, assigner, comment }: Vars) => ({
+    when: actions(
+      [Project.assign as any, { assignment, assignee, assigner }, { assignment }],
+    ),
+    where: (frames: Frames): Frames => {
+      const result = new Frames();
+      for (const frame of frames) {
+        const commentId = `comment_${Date.now()}_assignment_init`;
+        result.push({
+          ...(frame as any),
+          [comment]: commentId
+        } as any);
+      }
+      return result;
+    },
+    then: actions(
+      [Comment.create as any, {
+        comment,
+        targetEntity: assignment,
+        authorEntity: assigner,
+        content: "Assignment discussion thread. Use this space for questions and updates.",
+        commentType: "assignment_init"
+      }],
+    ),
+  });
+
+  // Archive old comments when entities are archived
+  const ArchiveEntityComments = ({ targetEntity, comments }: Vars) => ({
+    when: actions(
+      [Project.archive as any, { project: targetEntity }, {}],
+      [Team.delete as any, { team: targetEntity }, {}],
+    ),
+    where: (frames: Frames): Frames => {
+      const result = new Frames();
+      for (const frame of frames) {
+        const entityComments = Comment._getByTarget({ targetEntity: (frame as any)[targetEntity] });
+        result.push({
+          ...(frame as any),
+          [comments]: entityComments
+        } as any);
+      }
+      return result;
+    },
+    then: actions(
+      // This would need to iterate over comments - simplified here
+      [Comment.delete as any, { comment: "comment_id" }],
+    ),
+  });
+
+  // Auto-generate project documentation from comments
+  const GenerateProjectDocumentation = ({ projectId, documentation }: Vars) => ({
+    when: actions(
+      [Project.publish as any, { project: projectId }, {}],
+    ),
+    where: (frames: Frames): Frames => {
+      const result = new Frames();
+      for (const frame of frames) {
+        const projectComments = Comment._getByTarget({ targetEntity: (frame as any)[projectId] });
+        const documentationComments = projectComments.filter((c: any) => 
+          c.commentType === "documentation" || c.commentType === "requirements"
+        );
+        
+        if (documentationComments.length > 0) {
+          const docContent = documentationComments
+            .map((c: any) => c.content)
+            .join('\n\n');
+          
+          result.push({
+            ...(frame as any),
+            [documentation]: docContent
+          } as any);
+        }
+      }
+      return result;
+    },
+    then: actions(
+      [File.upload as any, {
+        file: `doc_${Date.now()}_${projectId}`,
+        filename: `${projectId}_documentation.md`,
+        originalName: "Project Documentation",
+        mimeType: "text/markdown",
+        size: 1000, // Would be calculated
+        ownerEntity: "system",
+        attachedEntity: projectId,
+        visibility: "public",
+        storageUrl: `/docs/${projectId}.md`
+      }],
+    ),
+  });
+  */
+
+  return {
+    AttachFileToProject,
+    AutoTagProject,
+    NotifyProjectComment,
+    IncrementTagUsage,
+    InitializeTeamDiscussion,
+    UpdateFileVisibility,
+    // Functions below temporarily disabled due to concept method mismatches:
+    // InitializeAssignmentDiscussion,
+    // ArchiveEntityComments,
+    // GenerateProjectDocumentation,
+  } as const;
+}

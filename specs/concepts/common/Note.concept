@@ -1,0 +1,50 @@
+<concept_spec>
+
+concept Note
+
+purpose
+  manage progress notes independently and attach them to any assignment or entity via relationships
+
+state
+  a set of Notes with
+    an id String
+    a note String
+    a noteType String
+    a createdAt Date
+
+actions
+  addNote(assignment: String, note: String, author: String, noteType: String) -> ProgressNote | {error}
+    - add note to assignment
+    - return progress note with generated timestamp
+
+  deleteNote(id: String) -> {success: Boolean} | {error}
+    - delete a progress note by id
+
+queries
+  _getByAssignment(assignment: String) -> [ProgressNote]
+    - return all notes for the assignment
+
+  _getByAuthor(author: String) -> [ProgressNote]
+    - return all notes authored by a user
+
+  _getByType(noteType: String) -> [ProgressNote]
+    - return all notes of a given type
+
+operational principle
+  Notes are independent. After addNote(assignment: "a1", note: "Started", author: "u1", noteType: "status"), then _getByAssignment("a1") returns the created note.
+
+</concept_spec>
+
+
+
+  a set of ProgressNotes with
+    an assignment String
+    a note String
+    an author String
+    a noteType String
+    a createdAt Date
+
+  addNote(assignment: String, note: String, author: String, noteType: String) -> ProgressNote | {error}
+    - add  note to assignment
+    - return progress note with generated timestamp
+

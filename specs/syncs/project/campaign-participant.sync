@@ -1,0 +1,66 @@
+
+sync AddCampaignParticipant
+when
+    API.request (method: "POST", path: "/api/campaigns/:campaignId/participants", participantId: participantId) : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: context) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.campaigns.manage_participants = true
+    Campaign._hasCapacity (campaign: campaignId) : (hasCapacity: true)
+then
+    Campaign.addParticipant (campaign: campaignId, participantId: participantId)
+
+sync AddCampaignParticipantCapacityFull
+when
+    API.request (method: "POST", path: "/api/campaigns/:campaignId/participants", participantId: participantId) : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: context) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.campaigns.manage_participants = true
+    Campaign._hasCapacity (campaign: campaignId) : (hasCapacity: false)
+then
+    API.respond (request: request, status: 400, body: {error: "Campaign has reached maximum participant capacity"})
+
+sync RemoveCampaignParticipant
+when
+    API.request (method: "DELETE", path: "/api/campaigns/:campaignId/participants/:participantId") : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: context) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.campaigns.manage_participants = true
+then
+    Campaign.removeParticipant (campaign: campaignId, participantId: participantId)
+
+sync ParticipantSelfRegister
+when
+    API.request (method: "POST", path: "/api/campaigns/:campaignId/register") : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Campaign._getByCampaign (campaign: campaignId) : (campaign: campaign)
+    campaign.status = "active"
+    Campaign._hasCapacity (campaign: campaignId) : (hasCapacity: true)
+then
+    Campaign.addParticipant (campaign: campaignId, participantId: userId)
+
+sync ParticipantSelfRegisterSuccess
+when
+    API.request (method: "POST", path: "/api/campaigns/:campaignId/register") : (request: request)
+    Campaign.addParticipant (campaign: campaignId, participantId: userId) : (campaign: campaign)
+then
+    API.respond (request: request, status: 200, body: {message: "Successfully registered for campaign"})
+
+sync ParticipantSelfUnregister
+when
+    API.request (method: "DELETE", path: "/api/campaigns/:campaignId/register") : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Campaign._getByCampaign (campaign: campaignId) : (campaign: campaign)
+    campaign.participantIds contains userId
+then
+    Campaign.removeParticipant (campaign: campaignId, participantId: userId)

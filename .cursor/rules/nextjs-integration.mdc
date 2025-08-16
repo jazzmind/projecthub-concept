@@ -86,7 +86,7 @@ export { API };
 ### Server-Side Patterns
 - **Server Actions**: Use concepts directly in server components and actions
 - **API Routes**: Proxy HTTP requests to `API` concept for external clients
-- **Edge Runtime**: Disable by default for MongoDB compatibility
+- **Edge Runtime**: Disable by default for compatibility
 - **Environment**: Configure via `.env.local` for database connections
 
 ### Client-Side Integration
@@ -103,7 +103,7 @@ const response = await fetch('/api/users', {
 - Node.js 18+ required
 - Next.js 15+ with App Router
 - TypeScript strict mode enabled
-- MongoDB for persistence
+- Prisma for persistence
 
 ### Route Generation Strategy
 1. Parse `syncs/` for `API.request` patterns to infer routes

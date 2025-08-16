@@ -1,0 +1,53 @@
+<concept_spec>
+
+concept API
+
+purpose
+  handle HTTP requests and responses for external access to the projecthub platform
+
+state
+  a set of Requests with
+    a request String
+    a method String
+    a path String
+    a headers Object
+    an optional body Object
+    an optional params Object
+    an optional query Object
+    a timestamp Date
+
+  a set of Responses with
+    a response String
+    a requestId String
+    a status Number
+    a headers Object
+    a body Object
+    a timestamp Date
+
+actions
+  request(request: String, method: String, path: String, headers: Object?, body: Object?, params: Object?, query: Object?, userId: String?, sessionId: String?) -> Request | {error}
+    - create new API request
+    - validate method and path
+    - return request with generated id and timestamp
+
+  respond(response: String, requestId: String, status: Number, headers: Object?, body: Object) -> Response | {error}
+    - create response for request
+    - return response with generated id and timestamp
+
+queries
+  _waitForResponse(request: String) -> [Response]
+    - wait for and return response for given request
+    - used by API routes to get sync responses
+
+  _getRequest(request: String) -> [Request]
+    - return request by identifier
+
+  _getResponse(response: String) -> [Response]
+    - return response by identifier
+
+  _getRequestsByPath(path: String) -> [Request]
+    - return requests for path
+
+operational principle
+  The API concept serves as the gateway between HTTP requests and the concept-based backend. After request(request: "req1", method: "POST", path: "/api/users", headers: {}, body: {name: "John"}) and respond(response: "res1", requestId: "req1", status: 200, body: {user: "u1"}), then _waitForResponse(request: "req1") returns the response.
+</concept_spec>

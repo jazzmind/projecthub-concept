@@ -1,0 +1,15 @@
+<sync_spec>
+
+sync InitializePlatformRoles
+when
+    Organization.create (organization: platformId, organizationType: "platform") : (organization: organization)
+then
+    Role.create (name: "platform_admin", displayName: "Platform Administrator", description: "Full platform access", scope: "platform", permissions: platformAdminPermissions)
+    Role.create (name: "org_admin", displayName: "Organization Administrator", description: "Organization management", scope: "organization", permissions: organizationAdminPermissions)
+    Role.create (name: "educator", displayName: "Educator", description: "Educational content management", scope: "campaign", permissions: educatorPermissions)
+    Role.create (name: "expert", displayName: "Expert", description: "Project guidance and feedback", scope: "project", permissions: expertPermissions)
+    Role.create (name: "industry_partner", displayName: "Industry Partner", description: "Industry collaboration", scope: "project", permissions: industryPartnerPermissions)
+    Role.create (name: "team_leader", displayName: "Team Leader", description: "Team leadership", scope: "team", permissions: teamLeaderPermissions)
+    Role.create (name: "learner", displayName: "Learner", description: "Learning participation", scope: "team", permissions: learnerPermissions)
+
+</sync_spec>

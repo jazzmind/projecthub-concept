@@ -1,0 +1,44 @@
+<concept_spec>
+
+concept Tag
+
+purpose
+  provide categorization and labeling system for platform content and entities
+
+state
+  a set of Tags with
+    an id String
+    a name String
+    a color String
+    an optional description String
+    a category String
+    an isSystemTag Flag
+    an isActive Flag
+    a usageCount Number
+    an optional lastUsedAt Date
+    a createdAt Date
+    an updatedAt Date
+
+actions
+  create(tag: String, name: String, color: String?, description: String?, category: String?, isSystemTag: Flag?) -> Tag | {error}
+  update(tag: String, name: String?, color: String?, description: String?, category: String?) -> Tag | {error}
+  incrementUsage(tag: String) -> Tag | {error}
+  decrementUsage(tag: String) -> Tag | {error}
+  deactivate(tag: String) -> Tag | {error}
+  delete(tag: String) -> {success: Boolean} | {error}
+
+queries
+  _getByTag(tag: String) -> [Tag]
+  _getByName(name: String) -> [Tag]
+  _getByCategory(category: String) -> [Tag]
+  _getActive() -> [Tag]
+  _getSystemTags() -> [Tag]
+  _getMostUsed(limit: Number) -> [Tag]
+  _getByColor(color: String) -> [Tag]
+  _searchByName(searchTerm: String) -> [Tag]
+  _getUnused() -> [Tag]
+
+operational principle
+  Tags categorize content with usage tracking and system tag protection. After create(tag: "t1", name: "JavaScript", color: "#f7df1e", category: "programming") and incrementUsage(tag: "t1"), then _getMostUsed(limit: 10) will include the tag based on its usage count.
+
+</concept_spec>

@@ -33,24 +33,34 @@ The application is built using **Concept Design** - a modular approach where fun
 - **Team**: Student collaboration with optional expert and industry partner involvement
 - **Assignment**: Project assignments and application tracking
 - **Expert**: Domain expertise management and project feedback
-- **IndustryPartner**: Company contact management and project sourcing
+
+### Utility Concepts
 - **API**: HTTP request/response handling for external access
+- **Membership**: Lets objects like users belong to other objects like teams and orgs.
+- **Assignment**: Lets objects like projects be assigned to other objects like teams and users.
+- **Role**: Lets objects like users have roles like admin, educator, expert, industry partner, and learner and associated permissions
+- **Notification**: Lets objects like users receive notifications for important events.
+- **File**: Lets objects like projects have files and attachments.
+- **Comment**: Lets objects like projects have comments and discussion threads.
+- **Setting**: Lets objects like organizations have settings and preferences.
+- **Tag**: Lets objects like projects have tags and categories.
+- **Session**: Lets objects like users have sessions and activity logs.
 
-#### Development Tools
-- **Concept Validation Engine**: AI-powered validation of concept specifications vs implementations
-- **Schema Synchronization**: Automatic Prisma schema generation from concept specifications
-- **Synchronization Framework**: Event-driven concept interactions
+### Core Roles
+- **Admin**: Full access to all features and settings
+- **Educator**: Manage campaigns, teams, and assignments
+- **Expert**: Provide project feedback and guidance
+- **Industry Partner**: Source projects and collaborate with teams
+- **Learner**: Participate in projects and learn from experts
 
-### Core Entities
+### Synchronizations
 
-- **User**: Platform users with email-based authentication, organization memberships, and role-based permissions
-- **Organization**: Hierarchical structure supporting education institutions and industry companies with managing relationships
-- **Campaign**: Project sourcing campaigns with industry/project constraints and customizable landing pages
-- **Project**: Industry-focused projects with AI generation, expert assignment, and scope customization
-- **Team**: Collaborative units supporting various configurations (students, experts, industry partners)
-- **Assignment**: Project-to-student/team assignments with application workflows and progress tracking
-- **Expert**: Domain specialists providing project feedback and guidance
-- **IndustryPartner**: Company contacts for project sourcing and collaboration
+Synchronizations are the connections between concepts. They are defined in the `specs/` directory and are used to generate the `lib/syncs/` directory.
+
+- **User, [Organization|Campaign|Project|Team|User], Assignment, Role**: A User is Assigned Roles to Organizations, Campaigns, Projects and Teams. This is how access is controlled. The narrowest role is used for an object. E.g. an org admin in a team as a student, the student role is used for team resources, but the admin role is used for organization resources. Organization is broadest, then Campaign, then Project, then Team, then User (a user has owner role for themselves). . 
+- **[Campaign,Organization|Project,Campaign|User,Team] Membership**: A campaign has Memberships to an organization. A project has Memberships to one or more campaigns. A user has Memberships to one or more teams.
+- **Project, [User,Team], Assignment**: A project can be assigned to a user or team. A project can have one or more assignments.
+
 
 ## AI Agents (Planned)
 - **Project Agent**: AI system for generating and refining project scope using RAG search and chat interface

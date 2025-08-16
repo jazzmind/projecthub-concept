@@ -1,0 +1,203 @@
+import { PrismaClient, Setting } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+export class SettingConcept {
+  private prisma: PrismaClient;
+
+  constructor() {
+    this.prisma = prisma;
+  }
+
+  async set(input: {
+    setting: string;
+    ownerEntity: string;
+    ownerType: string;
+    category: string;
+    key: string;
+    value: any;
+    isPublic?: boolean;
+    metadata?: object;
+  }): Promise<{ setting: Setting } | { error: string }> {
+    try {
+      // Check if setting already exists
+      const existing = await this.prisma.setting.findFirst({
+        where: {
+          ownerEntity: input.ownerEntity,
+          key: input.key,
+          ownerType: input.ownerType,
+          category: input.category
+        }
+      });
+
+      if (existing) {
+        // Update existing setting
+        const setting = await this.prisma.setting.update({
+          where: { setting: existing.setting },
+          data: {
+            value: input.value,
+            isPublic: input.isPublic || false,
+            metadata: input.metadata,
+            updatedAt: new Date()
+          }
+        });
+        return { setting };
+      } else {
+        // Create new setting
+        const setting = await this.prisma.setting.create({
+          data: {
+            setting: input.setting,
+            ownerEntity: input.ownerEntity,
+            ownerType: input.ownerType,
+            category: input.category,
+            key: input.key,
+            value: input.value,
+            isPublic: input.isPublic || false,
+            metadata: input.metadata,
+          }
+        });
+        return { setting };
+      }
+    } catch (error) {
+      return { error: `Failed to set setting: ${error}` };
+    }
+  }
+
+  async update(input: {
+    setting: string;
+    value: any;
+    metadata?: object;
+  }): Promise<{ setting: Setting } | { error: string }> {
+    try {
+      const setting = await this.prisma.setting.update({
+        where: { setting: input.setting },
+        data: { 
+          value: input.value,
+          metadata: input.metadata,
+          updatedAt: new Date()
+        }
+      });
+
+      return { setting };
+    } catch (error) {
+      return { error: `Failed to update setting: ${error}` };
+    }
+  }
+
+  async delete(input: {
+    setting: string;
+  }): Promise<{ success: boolean } | { error: string }> {
+    try {
+      await this.prisma.setting.delete({
+        where: { setting: input.setting }
+      });
+
+      return { success: true };
+    } catch (error) {
+      return { error: `Failed to delete setting: ${error}` };
+    }
+  }
+
+  async bulkSet(input: {
+    ownerEntity: string;
+    settings: Array<{
+      key: string;
+      value: any;
+      ownerType?: string;
+      category?: string;
+    }>;
+  }): Promise<{ count: number } | { error: string }> {
+    try {
+      let count = 0;
+      for (const settingData of input.settings) {
+        const result = await this.set({
+          setting: `${input.ownerEntity}_${settingData.key}_${Date.now()}`,
+          ownerEntity: input.ownerEntity,
+          ownerType: settingData.ownerType || 'user',
+          category: settingData.category || 'general',
+          key: settingData.key,
+          value: settingData.value
+        });
+        
+        if ('setting' in result) {
+          count++;
+        }
+      }
+
+      return { count };
+    } catch (error) {
+      return { error: `Failed to bulk set settings: ${error}` };
+    }
+  }
+
+  // Queries
+  async _getBySetting(input: { setting: string }): Promise<Setting[]> {
+    const setting = await this.prisma.setting.findUnique({
+      where: { setting: input.setting }
+    });
+    return setting ? [setting] : [];
+  }
+
+  async _getByOwner(input: { ownerEntity: string }): Promise<Setting[]> {
+    return await this.prisma.setting.findMany({
+      where: { ownerEntity: input.ownerEntity },
+      orderBy: { key: 'asc' }
+    });
+  }
+
+  async _getByKey(input: { ownerEntity: string, key: string }): Promise<Setting[]> {
+    return await this.prisma.setting.findMany({
+      where: { 
+        ownerEntity: input.ownerEntity,
+        key: input.key 
+      }
+    });
+  }
+
+  async _getByCategory(input: { ownerEntity: string, category: string }): Promise<Setting[]> {
+    return await this.prisma.setting.findMany({
+      where: { 
+        ownerEntity: input.ownerEntity,
+        category: input.category 
+      },
+      orderBy: { key: 'asc' }
+    });
+  }
+
+  async _getPublicSettings(input: { ownerEntity: string }): Promise<Setting[]> {
+    return await this.prisma.setting.findMany({
+      where: { 
+        ownerEntity: input.ownerEntity,
+        isPublic: true 
+      },
+      orderBy: { key: 'asc' }
+    });
+  }
+
+  async _getByOwnerType(input: { ownerType: string }): Promise<Setting[]> {
+    return await this.prisma.setting.findMany({
+      where: { ownerType: input.ownerType },
+      orderBy: { ownerEntity: 'asc' }
+    });
+  }
+
+  async _getValue(input: { ownerEntity: string, key: string, category?: string }): Promise<any[]> {
+    const setting = await this.prisma.setting.findFirst({
+      where: {
+        ownerEntity: input.ownerEntity,
+        key: input.key,
+        category: input.category || "general"
+      }
+    });
+    return setting ? [setting.value] : [];
+  }
+
+  async _getAllSettings(): Promise<Setting[]> {
+    return await this.prisma.setting.findMany({
+      orderBy: [
+        { ownerEntity: 'asc' },
+        { key: 'asc' }
+      ]
+    });
+  }
+}

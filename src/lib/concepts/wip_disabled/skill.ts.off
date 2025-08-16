@@ -1,0 +1,144 @@
+import { PrismaClient, Skill } from "@prisma/client";
+
+export class SkillConcept {
+  private prisma: PrismaClient;
+
+  constructor() {
+    this.prisma = new PrismaClient();
+  }
+
+  async create(input: {
+    ownerEntity: string;
+    ownerType: string;
+    name: string;
+    kind?: string;
+    level?: string;
+    isExpertise?: boolean;
+    yearsExperience?: number;
+    proficiency?: string;
+    // tags removed; use Tag concept + Relationship
+  }): Promise<{ skill: Skill } | { error: string }> {
+    try {
+      // prevent duplicates for same (ownerEntity, ownerType, name, kind)
+      const existing = await this.prisma.skill.findFirst({
+        where: {
+          ownerEntity: input.ownerEntity,
+          ownerType: input.ownerType,
+          name: input.name,
+          kind: input.kind ?? null,
+        },
+      });
+      if (existing) {
+        return { error: "Skill already exists for this owner" };
+      }
+
+      const skill = await this.prisma.skill.create({
+        data: {
+          ownerEntity: input.ownerEntity,
+          ownerType: input.ownerType,
+          name: input.name,
+          kind: input.kind,
+          level: input.level,
+          isExpertise: input.isExpertise ?? false,
+          yearsExperience: input.yearsExperience ?? 0,
+          proficiency: input.proficiency,
+        },
+      });
+      return { skill };
+    } catch (error) {
+      return { error: `Failed to create skill: ${error}` };
+    }
+  }
+
+  async update(input: {
+    ownerEntity: string;
+    ownerType: string;
+    name: string;
+    kind?: string;
+    level?: string;
+    isExpertise?: boolean;
+    yearsExperience?: number;
+    proficiency?: string;
+    // tags removed; use Tag concept + Relationship
+  }): Promise<{ skill: Skill } | { error: string }> {
+    try {
+      const skill = await this.prisma.skill.update({
+        where: {
+          ownerEntity_ownerType_name_kind: {
+            ownerEntity: input.ownerEntity,
+            ownerType: input.ownerType,
+            name: input.name,
+            kind: input.kind ?? "",
+          },
+        },
+        data: {
+          level: input.level,
+          isExpertise: input.isExpertise,
+          yearsExperience: input.yearsExperience,
+          proficiency: input.proficiency,
+          // no tags here; maintained by Tag concept
+        },
+      });
+      return { skill };
+    } catch (error) {
+      return { error: `Failed to update skill: ${error}` };
+    }
+  }
+
+  async delete(input: {
+    ownerEntity: string;
+    ownerType: string;
+    name: string;
+    kind?: string;
+  }): Promise<{ success: boolean } | { error: string }> {
+    try {
+      await this.prisma.skill.delete({
+        where: {
+          ownerEntity_ownerType_name_kind: {
+            ownerEntity: input.ownerEntity,
+            ownerType: input.ownerType,
+            name: input.name,
+            kind: input.kind ?? "",
+          },
+        },
+      });
+      return { success: true };
+    } catch (error) {
+      return { error: `Failed to delete skill: ${error}` };
+    }
+  }
+
+  // Queries (arrays only)
+  async _getByOwner(input: { ownerEntity: string }): Promise<Skill[]> {
+    return await this.prisma.skill.findMany({
+      where: { ownerEntity: input.ownerEntity },
+      orderBy: { updatedAt: "desc" },
+    });
+  }
+
+  async _getByName(input: { name: string; kind?: string }): Promise<Skill[]> {
+    return await this.prisma.skill.findMany({
+      where: { name: input.name, kind: input.kind ?? undefined },
+      orderBy: { updatedAt: "desc" },
+    });
+  }
+
+  async _getExpertiseByName(input: { name: string }): Promise<Skill[]> {
+    return await this.prisma.skill.findMany({
+      where: { name: input.name, isExpertise: true },
+      orderBy: { updatedAt: "desc" },
+    });
+  }
+
+  async _getOwnersByNames(input: { names: string[]; kind?: string }): Promise<Skill[]> {
+    const where = input.kind
+      ? { name: { in: input.names }, kind: input.kind }
+      : { name: { in: input.names } };
+    return await this.prisma.skill.findMany({
+      where,
+      orderBy: { updatedAt: "desc" },
+    });
+  }
+}
+
+

@@ -15,7 +15,7 @@ alwaysApply: true
 
 ### 2. Implementation Phase
 1. **Create Concept Class**: Implement in TypeScript following patterns
-2. **Set Up Database**: Configure MongoDB collections and indexes
+2. **Set Up Database**: Configure Prisma schema
 3. **Implement Actions**: Handle all specified input/output cases
 4. **Implement Queries**: Create pure, side-effect-free functions
 5. **Add Validation**: Validate inputs and handle edge cases
@@ -48,7 +48,7 @@ alwaysApply: true
 ## Database Management
 - **Never use `--force-reset`**: This flag will terminate the process
 - **Use `npx prisma db push`**: For schema updates (if using Prisma)
-- **MongoDB Collections**: One per concept, properly indexed
+- **Prisma tables**: One per concept, properly indexed
 - **Environment Variables**: All configuration via `.env.local`
 
 ## Debugging Guidelines

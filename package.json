@@ -1,0 +1,16 @@
+{
+  "name": "projecthub-root",
+  "private": true,
+  "description": "Root wrapper package to forward npm scripts to ./src",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "npm --prefix ./src run dev",
+    "api": "npm --prefix ./src run api",
+    "build": "npm --prefix ./src run build",
+    "test": "npm --prefix ./src run test"
+  }
+}
+
+

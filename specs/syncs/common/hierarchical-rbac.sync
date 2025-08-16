@@ -1,0 +1,94 @@
+<sync_spec>
+
+sync InitializePlatformRoles
+when
+    Organization.create (organizationType: "platform") : (organization: organization)
+then
+    Role.create (name: "platform_admin", displayName: "Platform Administrator", description: "Full platform access", scope: "platform", permissions: platformAdminPermissions)
+    Role.create (name: "org_admin", displayName: "Organization Administrator", description: "Organization management", scope: "organization", permissions: organizationAdminPermissions)
+    Role.create (name: "educator", displayName: "Educator", description: "Educational content management", scope: "campaign", permissions: educatorPermissions)
+    Role.create (name: "expert", displayName: "Expert", description: "Project guidance and feedback", scope: "project", permissions: expertPermissions)
+    Role.create (name: "industry_partner", displayName: "Industry Partner", description: "Industry collaboration", scope: "project", permissions: industryPartnerPermissions)
+    Role.create (name: "team_leader", displayName: "Team Leader", description: "Team leadership", scope: "team", permissions: teamLeaderPermissions)
+    Role.create (name: "learner", displayName: "Learner", description: "Learning participation", scope: "team", permissions: learnerPermissions)
+
+sync GetEffectiveRole
+when
+    API.request (userId: userId, contextEntity: contextEntity) : (request: request)
+where
+    Membership._getByMember (memberEntity: userId) : (memberships: memberships)
+    memberships contains member with targetEntity = contextEntity or parent context
+then
+    return effectiveRole
+
+sync CheckPermission
+when
+    API.request (userId: userId, contextEntity: contextEntity, resource: resource, action: action) : (request: request)
+where
+    Membership._getByMember (memberEntity: userId) : (memberships: memberships)
+    Role._getByName (name: effectiveRole) : (roleData: roleData)
+    roleData.permissions[resource][action] = true
+then
+    return hasPermission: true
+
+sync CheckPermissionDenied
+when
+    API.request (userId: userId, contextEntity: contextEntity, resource: resource, action: action) : (request: request)
+where
+    Membership._getByMember (memberEntity: userId) : (memberships: memberships)
+    Role._getByName (name: effectiveRole) : (roleData: roleData)
+    roleData.permissions[resource][action] = false or not exists
+then
+    return hasPermission: false
+
+sync CreateCampaignMembership
+when
+    Campaign.create () : (campaign: campaign)
+where
+    campaign.educationOrganizationId exists
+then
+    Membership.invite (memberEntity: campaign, targetEntity: campaign.educationOrganizationId, roleEntity: "campaign_member", invitedBy: "system")
+    Membership.accept (memberEntity: campaign, targetEntity: campaign.educationOrganizationId)
+
+sync CreateProjectMembership
+when
+    Project.create () : (project: project)
+where
+    Campaign._getActive () : (activeCampaigns: campaigns)
+    campaigns exists
+then
+    Membership.invite (memberEntity: project, targetEntity: "campaign_default", roleEntity: "project_member", invitedBy: "system")
+
+sync CreateUserTeamMembership
+when
+    User.register () : (user: user)
+where
+    Team._getByStatus (status: "forming") : (availableTeams: teams)
+    teams exists
+then
+    continue with team assignment workflow
+
+sync EnforcePermissions
+when
+    API.request (userId: userId, resource: resource, action: action) : (request: request)
+where
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMember (memberEntity: userId) : (memberships: memberships)
+    Role._getByName (name: contextMembership.roleEntity) : (roleData: roleData)
+    roleData.permissions[resource][action] = true
+then
+    continue with authorized request
+
+sync AssignCreatorRole
+when
+    Organization.create () : (organization: entityId)
+    Campaign.create () : (campaign: entityId)
+    Project.create () : (project: entityId)
+    Team.create () : (team: entityId)
+where
+    creator userId exists
+then
+    Membership.invite (memberEntity: userId, targetEntity: entityId, roleEntity: creatorRole, invitedBy: "system")
+    Membership.accept (memberEntity: userId, targetEntity: entityId)
+
+</sync_spec>

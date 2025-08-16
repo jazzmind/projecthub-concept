@@ -1,0 +1,98 @@
+<sync_spec>
+
+sync SearchExpertsBySkill
+when
+    API.request (method: "GET", path: "/api/profiles/experts/search", skillName: skillName) : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: context) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.profiles.read = true
+    Profile._getExpertiseBySkill (skillName: skillName) : (profiles: profiles)
+then
+    API.respond (request: request, status: 200, body: {experts: profiles})
+
+sync FindProfilesForProject
+when
+    Project.create (project: projectId, requiredSkills: requiredSkills) : (project: project)
+where
+    Profile._getAvailableForProject (skillNames: requiredSkills, profileType: "expert") : (matchingProfiles: matchingProfiles)
+    matchingProfiles.length > 0
+then
+    Notification.create (notification: notificationId, recipientEntity: matchingProfiles[0].userEntity, title: "Project Match", message: "New project matches your expertise", notificationType: "expertise_match")
+
+sync GetProfileSkills
+when
+    API.request (method: "GET", path: "/api/profiles/:profileId/skills") : (request: request)
+where
+    Profile._getProfileSkills (profile: profileId) : (skills: skills)
+then
+    API.respond (request: request, status: 200, body: {skills: skills})
+
+sync RemoveProfileSkill
+when
+    API.request (method: "DELETE", path: "/api/profiles/:profileId/skills/:skillName") : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Profile._getByProfile (profile: profileId) : (profile: profile)
+    profile.userEntity = userId
+then
+    Profile.removeSkill (profile: profileId, skillName: skillName)
+
+sync RemoveProfileSkillSuccess
+when
+    API.request (method: "DELETE", path: "/api/profiles/:profileId/skills/:skillName") : (request: request)
+    Profile.removeSkill (profile: profileId, skillName: skillName) : (success: success)
+then
+    API.respond (request: request, status: 200, body: {success: success})
+
+
+sync GetUserProfiles
+when
+    API.request (method: "GET", path: "/api/users/:userEntity/profiles") : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    userId = userEntity or Session._getCurrentContext (sessionKey: request.sessionId) : (context: context)
+    Membership._getByMemberAndTarget (memberEntity: userId, targetEntity: context) : (membership: membership)
+    Role._getByName (name: membership.roleEntity) : (userRole: userRole)
+    userRole.permissions.profiles.read = true
+then
+    API.respond (request: request, status: 200, body: {profiles: profiles})
+
+sync CreateExpertProfile
+when
+    User.register (user: userIdentifier, email: email, name: name) : (user: user)
+    Membership.accept (memberEntity: userIdentifier, targetEntity: organizationId) : (membership: membership)
+where
+    membership.roleEntity = "expert"
+then
+    Profile.create (profile: expertProfileId, userEntity: userIdentifier, profileType: "expert", bio: "Expert profile", timezone: "UTC")
+
+sync CreateIndustryPartnerProfile
+when
+    User.register (user: userIdentifier, email: email, name: name) : (user: user)
+    Membership.accept (memberEntity: userIdentifier, targetEntity: organizationId) : (membership: membership)
+where
+    membership.roleEntity = "industry_partner"
+then
+    Profile.create (profile: partnerProfileId, userEntity: userIdentifier, profileType: "industry_partner", bio: "Industry partner profile", timezone: "UTC")
+
+sync AddProfileSkill
+when
+    API.request (method: "POST", path: "/api/profiles/:profileId/skills", skillName: skillName, skillLevel: skillLevel, isExpertise: isExpertise?, yearsExperience: yearsExperience?) : (request: request)
+where
+    API._getCurrentUser (request: request) : (userId: userId)
+    Profile._getByProfile (profile: profileId) : (profile: profile)
+    profile.userEntity = userId
+then
+    Profile.addSkill (profile: profileId, skillName: skillName, skillLevel: skillLevel, isExpertise: isExpertise, yearsExperience: yearsExperience)
+
+sync AddProfileSkillSuccess
+when
+    API.request (method: "POST", path: "/api/profiles/:profileId/skills") : (request: request)
+    Profile.addSkill (profile: profileId) : (profileSkill: profileSkill)
+then
+    API.respond (request: request, status: 201, body: {skill: profileSkill})
+
+</sync_spec>

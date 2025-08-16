@@ -1,0 +1,98 @@
+<concept_spec>  
+
+concept Assignment
+
+purpose
+  manage assignments of tasks or items to entities with progress tracking
+
+state
+  a set of Assignments with
+    an id String
+    an assigneeEntity String
+    an assignerEntity String
+    a taskEntity String
+    a status String
+    an optional dueDate Date
+    an optional startDate Date
+    an optional completedDate Date
+    an optional priority String
+    an optional description String
+    an optional metadata Object
+    a createdAt Date
+    an updatedAt Date
+
+actions
+  index(assignment: String?, task: String?, assignee: String, relationType: String?) -> Index | {error}
+    - build an index key and relation descriptor for the pair
+    - side-effect free (no persistence)
+  assign(assignment: String, task: String, assignee: String, assigner: String?, dueDate: Date?) -> Assignment | {error}
+    - create assignment of task to assignee
+    - set status to "assigned"
+    - return assignment with generated id and timestamps
+
+  accept(assignment: String) -> Assignment | {error}
+    - assignee accepts the assignment
+    - set status to "accepted", startDate=now
+    - return updated assignment
+
+  start(assignment: String) -> Assignment | {error}
+    - begin work on assignment
+    - set status to "in_progress", startDate=now if not set
+    - return updated assignment
+
+  complete(assignment: String) -> Assignment | {error}
+    - mark assignment as completed
+    - set status to "completed", completedDate=now
+    - return updated assignment
+
+  reject(assignment: String) -> Assignment | {error}
+    - assignee rejects the assignment
+    - set status to "rejected"
+    - return updated assignment
+
+  cancel(assignment: String) -> Assignment | {error}
+    - cancel the assignment
+    - set status to "cancelled"
+    - return updated assignment
+
+  updatePriority(assignment: String, priority: String) -> Assignment | {error}
+    - update assignment priority
+    - return updated assignment
+
+  updateDueDate(assignment: String, dueDate: Date) -> Assignment | {error}
+    - update assignment due date
+    - return updated assignment
+
+  delete(assignment: String) -> {success: Boolean} | {error}
+    - delete assignment if status allows
+    - return success status
+
+queries
+  _getByAssignment(assignment: String) -> [Assignment]
+    - return assignment by identifier
+
+  _getByTask(task: String) -> [Assignment]
+    - return assignments for specific task
+
+  _getByAssignee(assignee: String) -> [Assignment]
+    - return assignments for specific assignee
+
+  _getByAssigner(assigner: String) -> [Assignment]
+    - return assignments created by specific assigner
+
+  _getByStatus(status: String) -> [Assignment]
+    - return assignments with specific status
+
+  _getOverdue() -> [Assignment]
+    - return assignments past due date
+
+  _getByPriority(priority: String) -> [Assignment]
+    - return assignments with specific priority
+
+  _getActiveAssignments() -> [Assignment]
+    - return assignments with "accepted" or "in_progress" status
+
+operational principle
+  Assignments connect tasks to assignees with progress tracking. After assign(assignment: "a1", task: "review_document", assignee: "user123", assigner: "admin") and accept(assignment: "a1"), then _getByAssignee(assignee: "user123") shows the assignment with "accepted" status.
+
+</concept_spec>

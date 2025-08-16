@@ -1,0 +1,286 @@
+import { actions, Frames, Vars } from "@/lib/engine";
+import { NotificationConcept } from "@/lib/concepts/wip/notification";
+import { UserConcept } from "@/lib/concepts/common/user";
+import { MembershipConcept } from "@/lib/concepts/common/membership";
+import { AssignmentConcept } from "@/lib/concepts/wip/assignment";
+import { TeamConcept } from "@/lib/concepts/common/team";
+import { ProjectConcept } from "@/lib/concepts/project/project";
+import { CampaignConcept } from "@/lib/concepts/project/campaign";
+
+/**
+ * Notification Workflow Synchronizations
+ * 
+ * Handles automatic notification generation for important platform events
+ */
+
+export function makeNotificationWorkflowSyncs(
+  Notification: NotificationConcept,
+  User: UserConcept,
+  Membership: MembershipConcept,
+  Assignment: AssignmentConcept,
+  Team: TeamConcept,
+  Project: ProjectConcept,
+  Campaign: CampaignConcept,
+) {
+  
+  // Notify on membership invitation
+  const NotifyMembershipInvitation = ({ memberEntity, targetEntity, roleEntity, invitedBy, notification }: Vars) => ({
+    when: actions(
+      [Membership.invite as any, { memberEntity, targetEntity, roleEntity, invitedBy }, {}],
+    ),
+    where: (frames: Frames): Frames => {
+      const result = new Frames();
+      for (const frame of frames) {
+        const notificationId = `notif_${Date.now()}_invite_${(frame as any)[memberEntity]}`;
+        result.push({
+          ...(frame as any),
+          [notification]: notificationId
+        } as any);
+      }
+      return result;
+    },
+    then: actions(
+      [Notification.create as any, {
+        notification,
+        recipientEntity: memberEntity,
+        title: "Membership Invitation",
+        message: `You have been invited to join as ${String(roleEntity)}`,
+        notificationType: "membership_invitation",
+        sourceEntity: invitedBy,
+        actionUrl: `/memberships/pending`
+      }],
+    ),
+  });
+
+  // Notify on assignment creation
+  const NotifyAssignmentCreated = ({ assignee, task, assigner, notification }: Vars) => ({
+    when: actions(
+      [Assignment.assign as any, { assignee, task, assigner }, {}],
+    ),
+    where: (frames: Frames): Frames => {
+      const result = new Frames();
+      for (const frame of frames) {
+        const notificationId = `notif_${Date.now()}_assign_${(frame as any)[assignee]}`;
+        result.push({
+          ...(frame as any),
+          [notification]: notificationId
+        } as any);
+      }
+      return result;
+    },
+    then: actions(
+      [Notification.create as any, {
+        notification,
+        recipientEntity: assignee,
+        title: "New Assignment",
+        message: `You have been assigned: ${String(task)}`,
+        notificationType: "assignment_created",
+        sourceEntity: assigner,
+        actionUrl: `/assignments/${String(task)}`
+      }],
+    ),
+  });
+
+  // Notify team members when project is assigned to team
+  const NotifyTeamProjectAssignment = ({ teamId, projectId, assignedBy, members }: Vars) => ({
+    when: actions(
+      [Assignment.assign as any, { 
+        assignment: "assignment_id",
+        assignee: teamId,
+        assigner: assignedBy,
+        task: projectId,
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
+      }, {}],
+    ),
+    where: (frames: Frames): Frames => {
+      const result = new Frames();
+      for (const frame of frames) {
+        const teamMembers: any[] = []; // Simplified - would be populated by auth bridge
+        result.push({
+          ...(frame as any),
+          [members]: teamMembers
+        } as any);
+      }
+      return result;
+    },
+    then: actions(
+      // This would need to iterate over members - simplified here
+      [Notification.create as any, {
+        notification: `notif_${Date.now()}_team_project`,
+        recipientEntity: "team_member_1", // Would be dynamic
+        title: "Team Project Assignment",
+        message: `Your team has been assigned a new project`,
+        notificationType: "team_project_assignment",
+        sourceEntity: assignedBy,
+        actionUrl: `/teams/${String(teamId)}/projects`
+      }],
+    ),
+  });
+
+  // Notify on assignment completion
+  const NotifyAssignmentCompleted = ({ assignment, assignee, assigner, notification }: Vars) => ({
+    when: actions(
+      [Assignment.updateStatus as any, { assignment, status: "completed" }, { assignment: "completedAssignment" }],
+    ),
+    where: (frames: Frames): Frames => {
+      const result = new Frames();
+      for (const frame of frames) {
+        // Generate notification ID and assume assignee/assigner are provided in the action
+        const notificationId = `notif_${Date.now()}_complete_${String(assignment)}`;
+        
+        result.push({
+          ...(frame as any),
+          [notification]: notificationId
+        } as any);
+      }
+      return result;
+    },
+    then: actions(
+      [Notification.create as any, {
+        notification,
+        recipientEntity: assigner,
+        title: "Assignment Completed",
+        message: `Assignment has been completed by ${String(assignee)}`,
+        notificationType: "assignment_completed",
+        sourceEntity: assignee,
+        actionUrl: `/assignments/${String(assignment)}`
+      }],
+    ),
+  });
+
+  // Notify on campaign launch
+  const NotifyCampaignLaunch = ({ campaign, organizationId, members }: Vars) => ({
+    when: actions(
+      [Campaign.updateStatus as any, { campaign, status: "active" }, {}],
+    ),
+    where: (frames: Frames): Frames => {
+      const result = new Frames();
+      for (const frame of frames) {
+        // Simplified - assume members are provided or will be handled by auth bridge
+        const orgMembers: any[] = [];
+        result.push({
+          ...(frame as any),
+          [members]: orgMembers
+        } as any);
+      }
+      return result;
+    },
+    then: actions(
+      [Notification.create as any, {
+        notification: `notif_${Date.now()}_campaign_launch`,
+        recipientEntity: "org_member_1", // Would be dynamic
+        title: "Campaign Launched",
+        message: `New campaign is now active and accepting participants`,
+        notificationType: "campaign_launched",
+        sourceEntity: "system",
+        actionUrl: `/campaigns/${String(campaign)}`
+      }],
+    ),
+  });
+
+  // Notify on team formation
+  const NotifyTeamFormed = ({ team, creator, notification }: Vars) => ({
+    when: actions(
+      [Team.create as any, { team }, { team }],
+    ),
+    where: (frames: Frames): Frames => {
+      const result = new Frames();
+      for (const frame of frames) {
+        const notificationId = `notif_${Date.now()}_team_${(frame as any)[creator]}`;
+        result.push({
+          ...(frame as any),
+          [notification]: notificationId
+        } as any);
+      }
+      return result;
+    },
+    then: actions(
+      [Notification.create as any, {
+        notification,
+        recipientEntity: creator,
+        title: "Team Created",
+        message: `Your team has been successfully created and is ready for members`,
+        notificationType: "team_created",
+        sourceEntity: "system",
+        actionUrl: `/teams/${String(team)}`
+      }],
+    ),
+  });
+
+  // Notify experts when their expertise is needed
+  const NotifyExpertMatch = ({ expertId, projectId, domain, notification }: Vars) => ({
+    when: actions(
+      [Project.create as any, { domain }, { project: projectId }],
+    ),
+    where: (frames: Frames): Frames => {
+      const result = new Frames();
+      for (const frame of frames) {
+        // Find experts with matching domain expertise
+        // This would be a more complex query in practice
+        const matchingExperts: any[] = []; // Expert._getByExpertiseDomain({ domain });
+        
+        if (matchingExperts.length > 0) {
+          const notificationId = `notif_${Date.now()}_expert_match`;
+          result.push({
+            ...(frame as any),
+            [expertId]: matchingExperts[0]?.expert,
+            [notification]: notificationId
+          } as any);
+        }
+      }
+      return result;
+    },
+    then: actions(
+      [Notification.create as any, {
+        notification,
+        recipientEntity: expertId,
+        title: "Expertise Match",
+        message: `A new project matches your expertise in ${String(domain)}`,
+        notificationType: "expertise_match",
+        sourceEntity: "system",
+        actionUrl: `/projects/${String(projectId)}`
+      }],
+    ),
+  });
+
+  // Notify on membership status changes
+  const NotifyMembershipStatusChange = ({ memberEntity, targetEntity, status, notification }: Vars) => ({
+    when: actions(
+      [Membership.suspend as any, { memberEntity, targetEntity }, {}],
+      [Membership.reactivate as any, { memberEntity, targetEntity }, {}],
+    ),
+    where: (frames: Frames): Frames => {
+      const result = new Frames();
+      for (const frame of frames) {
+        const notificationId = `notif_${Date.now()}_status_${(frame as any)[memberEntity]}`;
+        result.push({
+          ...(frame as any),
+          [notification]: notificationId
+        } as any);
+      }
+      return result;
+    },
+    then: actions(
+      [Notification.create as any, {
+        notification,
+        recipientEntity: memberEntity,
+        title: "Membership Status Changed",
+        message: `Your membership status has been updated`,
+        notificationType: "membership_status_change",
+        sourceEntity: "system",
+        actionUrl: `/profile/memberships`
+      }],
+    ),
+  });
+
+  return {
+    NotifyMembershipInvitation,
+    NotifyAssignmentCreated,
+    NotifyTeamProjectAssignment,
+    NotifyAssignmentCompleted,
+    NotifyCampaignLaunch,
+    NotifyTeamFormed,
+    NotifyExpertMatch,
+    NotifyMembershipStatusChange,
+  } as const;
+}

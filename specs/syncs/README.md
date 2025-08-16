@@ -12,6 +12,7 @@ This directory contains all synchronization specifications for the ProjectHub pl
 - `campaigns.sync` - Campaign management and participant registration
 - `organizations.sync` - Organizational hierarchy and membership
 - `assignments.sync` - Task and project assignment workflows with progress tracking
+- `profiles.sync` - User profile management for experts and industry partners
 
 ## Composite Workflows
 - `workflows.sync` - Complex multi-concept workflows demonstrating RBAC integration

@@ -1,0 +1,68 @@
+<concept_spec>
+
+concept Role
+
+purpose
+  define named permission sets for access control systems
+
+state
+  a set of Roles with
+    an id String
+    a displayName String
+    a description String
+    a scope String
+    an isActive Flag
+    an isBuiltIn Flag
+    a createdAt Date
+    an updatedAt Date
+
+  a set of Permissions with
+    a role String
+    a resource String
+    an action String
+    an isAllowed Flag
+actions
+  create(name: String, displayName: String, description: String, scope: String, permissions: Object) -> Role | {error}
+    - create a new role
+    - validate name uniqueness within scope
+    - set isActive=true, isBuiltIn=false
+    - return role with generated id and timestamps
+
+  update(name: String, displayName: String?, description: String?, permissions: Object?) -> Role | {error}
+    - update existing role
+    - cannot update if isBuiltIn=true
+    - return updated role
+
+  activate(name: String) -> Role | {error}
+    - set role as active
+    - return updated role
+
+  deactivate(name: String) -> Role | {error}
+    - set role as inactive
+    - cannot deactivate if isBuiltIn=true
+    - return updated role
+
+  delete(name: String) -> {success: Boolean} | {error}
+    - delete role if not built-in
+    - return success status
+
+queries
+  _getByName(name: String) -> [Role]
+    - return role by name
+
+  _getByScope(scope: String) -> [Role]
+    - return roles for scope
+
+  _getActive() -> [Role]
+    - return active roles
+
+  _getBuiltIn() -> [Role]
+    - return built-in roles
+
+  _hasPermission(name: String, resource: String, action: String) -> [Boolean]
+    - check if role has specific permission
+
+operational principle
+  Roles define named sets of permissions that can be assigned to entities. Standard roles include platform_admin, org_admin, educator, expert, industry_partner, team_leader, and learner. Experts and industry partners are roles that users can have, often combined with Profile entities for extended information. After create(name: "expert", scope: "project", permissions: {projects: {read: true, feedback: true}}) and _hasPermission(name: "expert", resource: "projects", action: "feedback"), the result is true.
+
+</concept_spec>

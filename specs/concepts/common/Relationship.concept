@@ -1,0 +1,56 @@
+<concept_spec>
+
+concept Relationship
+
+purpose
+  manage generic relationships between any two entities with a relationship type
+
+state
+  a set of Relationships with
+    an id String
+    a fromEntityType String
+    a fromEntityId String
+    a toEntityType String
+    a toEntityId String
+    a relationType String
+    an optional metadata Object
+    a createdAt Date
+    an updatedAt Date
+
+actions
+    
+  link(fromEntityType: String, fromEntityId: String, toEntityType: String, toEntityId: String, relationType: String, metadata: Object?) -> Relationship | {error}
+    - fromEntity is relationshipType of toEntity
+    - create or upsert a relationship between two entities
+    - prevent duplicates for the same (fromEntity, toEntity, relationType)
+
+  unlink(fromEntityType: String, fromEntityId: String, toEntityType: String, toEntityId: String, relationType: String) -> {success: Boolean} | {error}
+    - remove a relationship
+
+  update(fromEntityType: String, fromEntityId: String, toEntityType: String, toEntityId: String, relationType: String, metadata: Object?) -> Relationship | {error}
+    - update relationship metadata
+
+  index(fromEntityType: String, toEntityType: String, relationType: String) -> Index | {error}
+    - build an index key and relation descriptor for the pair
+    - side-effect free (no persistence)
+
+queries
+  _getByFrom(fromEntityType: String, fromEntityId: String, relationType: String?) -> [Relationship]
+    - return relationships originating from an entity
+
+  _getByTo(toEntityType: String, toEntityId: String, relationType: String?) -> [Relationship]
+    - return relationships targeting an entity
+
+  _getBetween(entityAType: String, entityAId: String, entityBType: String, entityBId: String) -> [Relationship]
+    - return relationships between two entities (any direction)
+
+  _getChildren(parentEntityType: String, parentEntityId: String, relationType: String) -> [Relationship]
+    - return relationships where parentEntity -> child (e.g., parent, child)
+
+operational principle
+  Relationships are independent and reusable. After link(fromEntity: "campaign_1", toEntity: "organization_1", relationType: "parent"), then _getByFrom(fromEntity: "campaign_1") returns the relationship.
+  fromEntity is relationshipType of toEntity
+
+</concept_spec>
+
+

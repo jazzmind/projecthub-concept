@@ -1,28 +1,59 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { AuthProvider } from '@/lib/auth-context'
+import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { AuthBridge } from '@/lib/auth-bridge'
 import Navigation from '@/components/Navigation'
+import AdminSidebar from '@/components/AdminSidebar'
+import ConditionalLayout from '@/components/ConditionalLayout'
 
 export const metadata: Metadata = {
   title: 'ProjectHub',
   description: 'A platform for sourcing and managing industry projects and partner companies',
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const h = await headers()
+  // Convert to a plain object eagerly; don't pass the dynamic headers iterable
+  const plain: Record<string, string> = Object.fromEntries((h as any).entries())
+  const initialUser = await AuthBridge.getInitialUserFromHeaderObject(plain)
   return (
     <html lang="en">
-      <body className="min-h-screen bg-gray-50">
-        <AuthProvider>
+      <body className="min-h-screen bg-white dark:bg-gray-900">
+        <AuthProvider initialUser={initialUser as any}>
           <Navigation />
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <AdminSidebar />
+          <ConditionalLayout>
             {children}
-          </main>
+          </ConditionalLayout>
         </AuthProvider>
       </body>
     </html>
   )
+}
+
+
+export async function ManagerLayout({ children }: { children: React.ReactNode }) {
+  const h = await headers()
+  const plain: Record<string, string> = Object.fromEntries((h as any).entries())
+  const initialUser = await AuthBridge.getInitialUserFromHeaderObject(plain)
+
+  // Require authentication
+  if (!initialUser) {
+    redirect('/')
+  }
+
+  // Require admin/manager role
+  const role = initialUser.effectiveRole?.name
+  const allowed = role === 'platform_admin' || role === 'manager'
+  if (!allowed) {
+    redirect('/')
+  }
+
+  return <>{children}</>
 }

@@ -1,0 +1,47 @@
+<concept_spec>
+
+concept File
+
+purpose
+  manage file uploads and attachments with access control and metadata
+
+state
+  a set of Files with
+    an id String
+    a filename String
+    an originalName String
+    a mimeType String
+    a size Number
+    a path String
+    an uploadedBy String
+    an optional entityType String
+    an optional entityId String
+    an optional attachedEntity String
+    an isPublic Flag
+    an optional visibility String
+    an isActive Flag
+    a tags Array
+    an optional metadata Object
+    a createdAt Date
+    an updatedAt Date
+
+actions
+  upload(file: String, filename: String, originalName: String, mimeType: String, size: Number, path: String, uploadedBy: String, entityType: String?, entityId: String?, isPublic: Flag?, tags: Array?, metadata: Object?) -> File | {error}
+  attach(file: String, attachedEntity: String) -> File | {error}
+  updateVisibility(file: String, visibility: String) -> File | {error}
+  delete(file: String) -> {success: Boolean} | {error}
+
+queries
+  _getByFile(file: String) -> [File]
+  _getByOwner(ownerEntity: String) -> [File]
+  _getByAttachedEntity(attachedEntity: String) -> [File]
+  _getByMimeType(mimeType: String) -> [File]
+  _getByVisibility(visibility: String) -> [File]
+  _getPublicFiles() -> [File]
+  _searchByFilename(filename: String) -> [File]
+  _getLargeFiles(sizeThreshold: Number) -> [File]
+
+operational principle
+  Files are uploaded with metadata and can be attached to entities with access control. After upload(file: "f1", filename: "document.pdf", originalName: "My Document.pdf", mimeType: "application/pdf", size: 1024, path: "/uploads/f1.pdf", uploadedBy: "user1") and attach(file: "f1", attachedEntity: "project1"), then _getByAttachedEntity(attachedEntity: "project1") includes the file.
+
+</concept_spec>

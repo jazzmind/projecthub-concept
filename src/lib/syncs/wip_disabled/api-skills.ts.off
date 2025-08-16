@@ -1,0 +1,187 @@
+import { actions, Frames, Vars } from "@/lib/engine";
+import { APIConcept } from "@/lib/concepts/common/api";
+import { SkillConcept } from "@/lib/concepts/wip/skill";
+
+/**
+ * API Skill Synchronizations
+ * - Generic endpoints to manage skills for any owner entity
+ * - Provides convenience endpoints for profile-owned skills
+ */
+
+export function makeApiSkillSyncs(
+  API: APIConcept,
+  Skill: SkillConcept,
+) {
+  // Create generic skill (trigger)
+  const CreateSkill = ({ request, ownerEntity, ownerType, name, kind, level, isExpertise, yearsExperience, proficiency }: Vars) => ({
+    when: actions(
+      [API.request as any, { method: "POST", path: "/api/skills", ownerEntity, ownerType, name, kind, level, isExpertise, yearsExperience, proficiency }, { request }],
+    ),
+    then: actions(
+      [Skill.create as any, { ownerEntity, ownerType, name, kind, level, isExpertise, yearsExperience, proficiency }],
+    ),
+  });
+
+  // Create generic skill (response)
+  const CreateSkillResponse = ({ request, requestId, skillData, responseBody }: Vars) => ({
+    when: actions(
+      [API.request as any, { method: "POST", path: "/api/skills" }, { request }],
+      [Skill.create as any, {}, { skill: skillData }],
+    ),
+    where: (frames: Frames) => {
+      return frames.map((frame) => {
+        const skill = (frame as any)[skillData];
+        const bodyData = { skill };
+        
+        return {
+          ...frame,
+          [requestId]: (frame as any)[request]?.id,
+          [responseBody]: bodyData,
+        };
+      });
+    },
+    then: actions([
+      API.respond,
+      { requestId, status: 201, body: responseBody },
+    ]),
+  });
+
+  // Update generic skill (trigger)
+  const UpdateSkill = ({ request, ownerEntity, ownerType, name, kind, level, isExpertise, yearsExperience, proficiency }: Vars) => ({
+    when: actions(
+      [API.request as any, { method: "PUT", path: "/api/skills", ownerEntity, ownerType, name, kind, level, isExpertise, yearsExperience, proficiency }, { request }],
+    ),
+    then: actions(
+      [Skill.update as any, { ownerEntity, ownerType, name, kind, level, isExpertise, yearsExperience, proficiency }],
+    ),
+  });
+
+  // Update generic skill (response)
+  const UpdateSkillResponse = ({ request, requestId, skillData, responseBody }: Vars) => ({
+    when: actions(
+      [API.request as any, { method: "PUT", path: "/api/skills" }, { request }],
+      [Skill.update as any, {}, { skill: skillData }],
+    ),
+    where: (frames: Frames) => {
+      return frames.map((frame) => {
+        const skill = (frame as any)[skillData];
+        const bodyData = { skill };
+        
+        return {
+          ...frame,
+          [requestId]: (frame as any)[request]?.id,
+          [responseBody]: bodyData,
+        };
+      });
+    },
+    then: actions([
+      API.respond,
+      { requestId, status: 200, body: responseBody },
+    ]),
+  });
+
+  // Delete generic skill (trigger)
+  const DeleteSkill = ({ request, ownerEntity, ownerType, name, kind }: Vars) => ({
+    when: actions(
+      [API.request as any, { method: "DELETE", path: "/api/skills", ownerEntity, ownerType, name, kind }, { request }],
+    ),
+    then: actions(
+      [Skill.delete as any, { ownerEntity, ownerType, name, kind }],
+    ),
+  });
+
+  // Delete generic skill (response)
+  const DeleteSkillResponse = ({ request, requestId, successData, responseBody }: Vars) => ({
+    when: actions(
+      [API.request as any, { method: "DELETE", path: "/api/skills" }, { request }],
+      [Skill.delete as any, {}, { success: successData }],
+    ),
+    where: (frames: Frames) => {
+      return frames.map((frame) => {
+        const success = (frame as any)[successData];
+        const bodyData = { success };
+        
+        return {
+          ...frame,
+          [requestId]: (frame as any)[request]?.id,
+          [responseBody]: bodyData,
+        };
+      });
+    },
+    then: actions([
+      API.respond,
+      { requestId, status: 200, body: responseBody },
+    ]),
+  });
+
+  // Get skills by owner
+  const GetSkillsByOwner = ({ request, requestId, ownerEntity, skillsData, responseBody }: Vars) => ({
+    when: actions(
+      [API.request as any, { method: "GET", path: "/api/skills", ownerEntity }, { request }],
+    ),
+    where: (frames: Frames) =>
+      frames.query(Skill._getByOwner as any, { ownerEntity }, { skills: skillsData })
+        .map((frame) => {
+          const skills = (frame as any)[skillsData];
+          const bodyData = { skills };
+          
+          return {
+            ...frame,
+            [requestId]: (frame as any)[request]?.id,
+            [responseBody]: bodyData,
+          };
+        }),
+    then: actions([
+      API.respond,
+      { requestId, status: 200, body: responseBody },
+    ]),
+  });
+
+  // Convenience: add skill to a profile owner (trigger)
+  const AddSkillToProfile = ({ request, profileId, name, kind, level, isExpertise, yearsExperience, proficiency }: Vars) => ({
+    when: actions(
+      [API.request as any, { method: "POST", path: "/api/profiles/:profileId/skills", profileId, name, kind, level, isExpertise, yearsExperience, proficiency }, { request }],
+    ),
+    then: actions(
+      [Skill.create as any, { ownerEntity: profileId, ownerType: "profile", name, kind, level, isExpertise, yearsExperience, proficiency }],
+    ),
+  });
+
+  // Convenience: add skill to a profile owner (response)
+  const AddSkillToProfileResponse = ({ request, requestId, skillData, responseBody }: Vars) => ({
+    when: actions(
+      [API.request as any, { method: "POST", path: "/api/profiles/:profileId/skills" }, { request }],
+      [Skill.create as any, {}, { skill: skillData }],
+    ),
+    where: (frames: Frames) => {
+      return frames.map((frame) => {
+        const skill = (frame as any)[skillData];
+        const bodyData = { skill };
+        
+        return {
+          ...frame,
+          [requestId]: (frame as any)[request]?.id,
+          [responseBody]: bodyData,
+        };
+      });
+    },
+    then: actions([
+      API.respond,
+      { requestId, status: 201, body: responseBody },
+    ]),
+  });
+
+  return {
+    CreateSkill,
+    CreateSkillResponse,
+    UpdateSkill,
+    UpdateSkillResponse,
+    DeleteSkill,
+    DeleteSkillResponse,
+    GetSkillsByOwner,
+    AddSkillToProfile,
+    AddSkillToProfileResponse,
+  } as const;
+}
+
+

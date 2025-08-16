@@ -1,0 +1,131 @@
+import { PrismaClient, Notification } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+export class NotificationConcept {
+  private prisma: PrismaClient;
+
+  constructor() {
+    this.prisma = prisma;
+  }
+
+  async create(input: {
+    notification: string;
+    recipientEntity: string;
+    title: string;
+    message: string;
+    notificationType: string;
+    metadata?: object;
+  }): Promise<{ notification: Notification } | { error: string }> {
+    try {
+      const notification = await this.prisma.notification.create({
+        data: {
+          notification: input.notification,
+          recipientEntity: input.recipientEntity,
+          title: input.title,
+          message: input.message,
+          notificationType: input.notificationType,
+          metadata: input.metadata,
+          isRead: false,
+        }
+      });
+
+      return { notification };
+    } catch (error) {
+      return { error: `Failed to create notification: ${error}` };
+    }
+  }
+
+  async markAsRead(input: {
+    notification: string;
+  }): Promise<{ notification: Notification } | { error: string }> {
+    try {
+      const notification = await this.prisma.notification.update({
+        where: { notification: input.notification },
+        data: { 
+          isRead: true,
+          readAt: new Date()
+        }
+      });
+
+      return { notification };
+    } catch (error) {
+      return { error: `Failed to mark notification as read: ${error}` };
+    }
+  }
+
+  async markAsDelivered(input: {
+    notification: string;
+  }): Promise<{ notification: Notification } | { error: string }> {
+    try {
+      const notification = await this.prisma.notification.update({
+        where: { notification: input.notification },
+        data: { 
+          updatedAt: new Date()
+        }
+      });
+
+      return { notification };
+    } catch (error) {
+      return { error: `Failed to mark notification as delivered: ${error}` };
+    }
+  }
+
+  async delete(input: {
+    notification: string;
+  }): Promise<{ success: boolean } | { error: string }> {
+    try {
+      await this.prisma.notification.delete({
+        where: { notification: input.notification }
+      });
+
+      return { success: true };
+    } catch (error) {
+      return { error: `Failed to delete notification: ${error}` };
+    }
+  }
+
+  // Queries
+  async _getByNotification(input: { notification: string }): Promise<Notification[]> {
+    const notification = await this.prisma.notification.findUnique({
+      where: { notification: input.notification }
+    });
+    return notification ? [notification] : [];
+  }
+
+  async _getByRecipient(input: { recipientEntity: string }): Promise<Notification[]> {
+    return await this.prisma.notification.findMany({
+      where: { recipientEntity: input.recipientEntity },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async _getUnreadByRecipient(input: { recipientEntity: string }): Promise<Notification[]> {
+    return await this.prisma.notification.findMany({
+      where: { 
+        recipientEntity: input.recipientEntity,
+        isRead: false 
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async _getByType(input: { notificationType: string }): Promise<Notification[]> {
+    return await this.prisma.notification.findMany({
+      where: { notificationType: input.notificationType },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  // Note: _getBySource removed as sourceEntity field doesn't exist in schema
+
+  // Note: _getUndelivered removed as isDelivered field doesn't exist in schema
+
+  async _getRecentByRecipient(input: { recipientEntity: string, limit: number }): Promise<Notification[]> {
+    return await this.prisma.notification.findMany({
+      where: { recipientEntity: input.recipientEntity },
+      orderBy: { createdAt: 'desc' },
+      take: input.limit
+    });
+  }
+}

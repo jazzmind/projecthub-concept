@@ -1,0 +1,121 @@
+<sync_spec>
+
+sync NotifyMembershipInvitation
+when
+    Membership.invite (memberEntity: memberEntity, targetEntity: targetEntity, roleEntity: roleEntity, invitedBy: invitedBy) : (membership: membership)
+where
+    User._getById (user: memberEntity) : (user: user)
+    user.isActive = true
+    Role._getByName (name: roleEntity) : (role: role)
+    role.isActive = true
+then
+    Notification.create (notification: notificationId, recipientEntity: memberEntity, title: "Membership Invitation", message: "You have been invited to join as " + role.displayName, notificationType: "membership_invitation")
+
+sync NotifyAssignmentCreated
+when
+    Assignment.assign (assignment: assignmentId, task: task, assignee: assignee, assigner: assigner) : (assignment: assignment)
+where
+    User._getById (user: assignee) : (assigneeUser: assigneeUser)
+    assigneeUser.isActive = true
+    task != null and task != ""
+then
+    Notification.create (notification: notificationId, recipientEntity: assignee, title: "New Assignment", message: "You have been assigned: " + task, notificationType: "assignment_created")
+
+sync NotifyTeamProjectAssignment
+when
+    Team.assignProject (team: teamId, projectId: projectId) : (team: team)
+where
+    Membership._getActiveByTarget (targetEntity: teamId) : (members: members)
+    members.length > 0
+    Project._getByProject (project: projectId) : (project: project)
+then
+    Notification.create (notification: notificationId, recipientEntity: members[0].memberEntity, title: "Team Project Assignment", message: "Your team has been assigned to project: " + project.title, notificationType: "team_project_assignment")
+
+sync NotifyAssignmentCompleted
+when
+    Assignment.updateStatus (assignment: assignmentId, status: status) : (assignment: assignment)
+where
+    status = "completed"
+    Assignment._getByAssignment (assignment: assignmentId) : (assignmentDetails: assignmentDetails)
+    assignmentDetails.assigner != null
+then
+    Notification.create (notification: notificationId, recipientEntity: assignmentDetails.assigner, title: "Assignment Completed", message: "Assignment completed: " + assignmentDetails.task, notificationType: "assignment_completed")
+
+sync NotifyCampaignLaunch
+when
+    Campaign.updateStatus (campaign: campaignId, status: status) : (campaign: campaign)
+where
+    status = "active"
+    Campaign._getById (campaign: campaignId) : (campaignDetails: campaignDetails)
+    Membership._getActiveByTarget (targetEntity: campaignDetails.organizationId) : (members: members)
+    members.length > 0
+then
+    Notification.create (notification: notificationId, recipientEntity: members[0].memberEntity, title: "Campaign Launched", message: "Campaign launched: " + campaignDetails.name, notificationType: "campaign_launch")
+
+sync NotifyTeamFormed
+when
+    Team.create (team: teamId, name: teamName, description: description) : (team: team)
+where
+    User._getById (user: creator) : (user: user)
+    user.isActive = true
+then
+    Notification.create (notification: notificationId, recipientEntity: creator, title: "Team Created", message: "Your team '" + teamName + "' has been successfully created", notificationType: "team_formed")
+
+sync NotifyExpertMatch
+when
+    Project.create (project: projectId, domain: domain, requiredSkills: requiredSkills) : (project: project)
+where
+    Profile._getAvailableForProject (skillNames: requiredSkills, profileType: "expert") : (matchingExperts: matchingExperts)
+    matchingExperts.length > 0
+    domain != null
+then
+    Notification.create (notification: notificationId, recipientEntity: matchingExperts[0].userEntity, title: "Expert Match Found", message: "New project matches your expertise in " + domain, notificationType: "expert_match")
+
+sync NotifyMembershipStatusChange
+when
+    Membership.accept (memberEntity: memberEntity, targetEntity: targetEntity) : (membership: membership)
+where
+    User._getById (user: memberEntity) : (user: user)
+    user.isActive = true
+    Membership._getByMemberAndTarget (memberEntity: memberEntity, targetEntity: targetEntity) : (membershipDetails: membershipDetails)
+    membershipDetails.status = "active"
+then
+    Notification.create (notification: notificationId, recipientEntity: memberEntity, title: "Membership Accepted", message: "Your membership has been accepted and is now active", notificationType: "membership_status_change")
+
+sync NotifyUserRegistration
+when
+    User.register (user: userId, email: email, name: name) : (user: user)
+where
+    user.isActive = true
+    email != null and email != ""
+then
+    Notification.create (notification: notificationId, recipientEntity: userId, title: "Welcome to ProjectHub", message: "Welcome " + name + "! Your account has been created successfully.", notificationType: "user_registration")
+
+sync NotifyProfileVerification
+when
+    Profile.verify (profile: profileId) : (profile: profile)
+where
+    Profile._getByProfile (profile: profileId) : (profileDetails: profileDetails)
+    profileDetails.isVerified = true
+then
+    Notification.create (notification: notificationId, recipientEntity: profileDetails.userEntity, title: "Profile Verified", message: "Your " + profileDetails.profileType + " profile has been verified", notificationType: "profile_verification")
+
+sync NotifyDueDateApproaching
+when
+    Assignment._getUpcoming (days: 2) : (upcomingAssignments: upcomingAssignments)
+where
+    upcomingAssignments.length > 0
+    upcomingAssignments[0].dueDate != null
+then
+    Notification.create (notification: notificationId, recipientEntity: upcomingAssignments[0].assignee, title: "Assignment Due Soon", message: "Assignment '" + upcomingAssignments[0].task + "' is due in 2 days", notificationType: "due_date_reminder")
+
+sync NotifyOverdueAssignment
+when
+    Assignment._getOverdue () : (overdueAssignments: overdueAssignments)
+where
+    overdueAssignments.length > 0
+    overdueAssignments[0].status != "completed"
+then
+    Notification.create (notification: notificationId, recipientEntity: overdueAssignments[0].assignee, title: "Assignment Overdue", message: "Assignment '" + overdueAssignments[0].task + "' is overdue", notificationType: "overdue_assignment")
+
+</sync_spec>

@@ -1,0 +1,40 @@
+<concept_spec>  
+
+concept Notification
+
+purpose
+  deliver messages and alerts to users across the platform
+
+state
+  a set of Notifications with
+    an id String
+    a recipientEntity String
+    a senderEntity String
+    a title String
+    a message String
+    a notificationType String
+    an optional actionUrl String
+    an optional metadata Object
+    an isRead Flag
+    an isDelivered Flag
+    an optional readAt Date
+    an optional deliveredAt Date
+    a createdAt Date
+
+actions
+  create(notification: String, recipientEntity: String, title: String, message: String, notificationType: String, sourceEntity: String?, actionUrl: String?, metadata: Object?) -> Notification | {error}
+  markAsRead(notification: String) -> Notification | {error}
+  markAsDelivered(notification: String) -> Notification | {error}
+  delete(notification: String) -> {success: Boolean} | {error}
+
+queries
+  _getByNotification(notification: String) -> [Notification]
+  _getByRecipient(recipientEntity: String) -> [Notification]
+  _getUnreadByRecipient(recipientEntity: String) -> [Notification]
+  _getByType(notificationType: String) -> [Notification]
+  _getBySource(sourceEntity: String) -> [Notification]
+  _getUndelivered() -> [Notification]
+  _getRecentByRecipient(recipientEntity: String, limit: Number) -> [Notification]
+
+operational principle
+  Notifications deliver messages to users and track delivery status. After create(notification: "n1", recipientEntity: "user1", title: "Welcome", message: "Welcome to the platform", notificationType: "welcome") and markAsRead(notification: "n1"), then _getUnreadByRecipient(recipientEntity: "user1") will not include notification "n1".
