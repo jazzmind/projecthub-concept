@@ -1,14 +1,7 @@
-import { PrismaClient, Membership } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { Membership } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
 export class MembershipConcept {
-  private prisma: PrismaClient;
-
-  constructor() {
-    this.prisma = prisma;
-  }
-
   // Build an index description for member -> target pair. No side-effects.
   async index(input: {
     memberEntityType: string;
@@ -34,7 +27,7 @@ export class MembershipConcept {
   // Convenience action to list members by target for API syncs
   async listByTarget(input: { targetEntityType: string; targetEntityId?: string }): Promise<{ memberships: Membership[] } | { error: string }> {
     try {
-      const memberships = await this.prisma.membership.findMany({
+      const memberships = await prisma.membership.findMany({
         where: { targetEntityType: input.targetEntityType, targetEntityId: input.targetEntityId || undefined }
       });
       return { memberships };
@@ -54,7 +47,7 @@ export class MembershipConcept {
   }): Promise<{ membership: Membership } | { error: string }> {
     try {
       // Check if membership already exists
-      const existing = await this.prisma.membership.findFirst({
+      const existing = await prisma.membership.findFirst({
         where: {
           memberEntityType: input.memberEntityType,
           memberEntityId: input.memberEntityId,
@@ -67,7 +60,7 @@ export class MembershipConcept {
         return { error: "Membership already exists" };
       }
 
-      const membership = await this.prisma.membership.create({
+      const membership = await prisma.membership.create({
         data: {
           memberEntityType: input.memberEntityType,
           memberEntityId: input.memberEntityId,
@@ -95,7 +88,7 @@ export class MembershipConcept {
     targetEntityId: string;
   }): Promise<{ membership: Membership } | { error: string }> {
     try {
-      const membership = await this.prisma.membership.findFirst({
+      const membership = await prisma.membership.findFirst({
         where: {
           memberEntityType: input.memberEntityType,
           memberEntityId: input.memberEntityId,
@@ -109,7 +102,7 @@ export class MembershipConcept {
         return { error: "Invitation not found" };
       }
 
-      const updated = await this.prisma.membership.update({
+      const updated = await prisma.membership.update({
         where: { id: membership.id },
         data: {
           status: "active",
@@ -131,7 +124,7 @@ export class MembershipConcept {
     targetEntityId: string;
   }): Promise<{ membership: Membership } | { error: string }> {
     try {
-      const membership = await this.prisma.membership.findFirst({
+      const membership = await prisma.membership.findFirst({
         where: {
           memberEntityType: input.memberEntityType,
           memberEntityId: input.memberEntityId,
@@ -145,7 +138,7 @@ export class MembershipConcept {
         return { error: "Invitation not found" };
       }
 
-      const updated = await this.prisma.membership.update({
+      const updated = await prisma.membership.update({
         where: { id: membership.id },
         data: {
           status: "left",
@@ -167,7 +160,7 @@ export class MembershipConcept {
     approvedBy: string;
   }): Promise<{ membership: Membership } | { error: string }> {
     try {
-      const membership = await this.prisma.membership.findFirst({
+      const membership = await prisma.membership.findFirst({
         where: {
           memberEntityType: input.memberEntityType,
           memberEntityId: input.memberEntityId,
@@ -180,7 +173,7 @@ export class MembershipConcept {
         return { error: "Membership not found" };
       }
 
-      const updated = await this.prisma.membership.update({
+      const updated = await prisma.membership.update({
         where: { id: membership.id },
         data: {
           status: "active",
@@ -204,7 +197,7 @@ export class MembershipConcept {
     targetEntityId: string;
   }): Promise<{ membership: Membership } | { error: string }> {
     try {
-      const membership = await this.prisma.membership.findFirst({
+      const membership = await prisma.membership.findFirst({
         where: {
           memberEntityType: input.memberEntityType,
           memberEntityId: input.memberEntityId,
@@ -217,7 +210,7 @@ export class MembershipConcept {
         return { error: "Membership not found" };
       }
 
-      const updated = await this.prisma.membership.update({
+      const updated = await prisma.membership.update({
         where: { id: membership.id },
         data: {
           status: "suspended",
@@ -238,7 +231,7 @@ export class MembershipConcept {
     targetEntityId: string;
   }): Promise<{ membership: Membership } | { error: string }> {
     try {
-      const membership = await this.prisma.membership.findFirst({
+      const membership = await prisma.membership.findFirst({
         where: {
           memberEntityType: input.memberEntityType,
           memberEntityId: input.memberEntityId,
@@ -251,7 +244,7 @@ export class MembershipConcept {
         return { error: "Membership not found" };
       }
 
-      const updated = await this.prisma.membership.update({
+      const updated = await prisma.membership.update({
         where: { id: membership.id },
         data: {
           status: "active",
@@ -272,7 +265,7 @@ export class MembershipConcept {
     targetEntityId: string;
   }): Promise<{ membership: Membership } | { error: string }> {
     try {
-      const membership = await this.prisma.membership.findFirst({
+      const membership = await prisma.membership.findFirst({
         where: {
           memberEntityType: input.memberEntityType,
           memberEntityId: input.memberEntityId,
@@ -285,7 +278,7 @@ export class MembershipConcept {
         return { error: "Membership not found" };
       }
 
-      const updated = await this.prisma.membership.update({
+      const updated = await prisma.membership.update({
         where: { id: membership.id },
         data: {
           status: "left",
@@ -308,7 +301,7 @@ export class MembershipConcept {
     roleEntityId: string;
   }): Promise<{ membership: Membership } | { error: string }> {
     try {
-      const membership = await this.prisma.membership.findFirst({
+      const membership = await prisma.membership.findFirst({
         where: {
           memberEntityType: input.memberEntityType,
           memberEntityId: input.memberEntityId,
@@ -321,7 +314,7 @@ export class MembershipConcept {
         return { error: "Membership not found" };
       }
 
-      const updated = await this.prisma.membership.update({
+      const updated = await prisma.membership.update({
         where: { id: membership.id },
         data: {
           roleEntityId: input.roleEntityId
@@ -341,7 +334,7 @@ export class MembershipConcept {
     targetEntityId: string;
   }): Promise<{ success: boolean } | { error: string }> {
     try {
-      const membership = await this.prisma.membership.findFirst({
+      const membership = await prisma.membership.findFirst({
         where: {
           memberEntityType: input.memberEntityType,
           memberEntityId: input.memberEntityId,
@@ -358,7 +351,7 @@ export class MembershipConcept {
         return { error: "Cannot delete active membership" };
       }
 
-      await this.prisma.membership.delete({
+      await prisma.membership.delete({
         where: { id: membership.id }
       });
 
@@ -371,7 +364,7 @@ export class MembershipConcept {
   // Queries
   async _getByMember(input: { memberEntityType: string; memberEntityId?: string }): Promise<Membership[]> {
     try {
-      const memberships = await this.prisma.membership.findMany({
+      const memberships = await prisma.membership.findMany({
         where: { memberEntityType: input.memberEntityType, memberEntityId: input.memberEntityId || undefined }
       });
       return memberships;
@@ -382,7 +375,7 @@ export class MembershipConcept {
 
   async _getByTarget(input: { targetEntityType: string; targetEntityId?: string }): Promise<Membership[]> {
     try {
-      const memberships = await this.prisma.membership.findMany({
+      const memberships = await prisma.membership.findMany({
         where: { targetEntityType: input.targetEntityType, targetEntityId: input.targetEntityId || undefined }
       });
       return memberships;
@@ -398,7 +391,7 @@ export class MembershipConcept {
     targetEntityId: string;
   }): Promise<Membership[]> {
     try {
-      const membership = await this.prisma.membership.findFirst({
+      const membership = await prisma.membership.findFirst({
         where: {
           memberEntityType: input.memberEntityType,
           memberEntityId: input.memberEntityId,
@@ -414,7 +407,7 @@ export class MembershipConcept {
 
   async _getActiveByMember(input: { memberEntityType: string; memberEntityId?: string }): Promise<Membership[]> {
     try {
-      const memberships = await this.prisma.membership.findMany({
+      const memberships = await prisma.membership.findMany({
         where: {
           memberEntityType: input.memberEntityType,
           memberEntityId: input.memberEntityId || undefined,
@@ -429,7 +422,7 @@ export class MembershipConcept {
 
   async _getActiveByTarget(input: { targetEntityType: string; targetEntityId?   : string }): Promise<Membership[]> {
     try {
-      const memberships = await this.prisma.membership.findMany({
+      const memberships = await prisma.membership.findMany({
         where: {
           targetEntityType: input.targetEntityType,
           targetEntityId: input.targetEntityId || undefined,
@@ -444,7 +437,7 @@ export class MembershipConcept {
 
   async _getByRole(input: { roleEntityId: string }): Promise<Membership[]> {
     try {
-      const memberships = await this.prisma.membership.findMany({
+      const memberships = await prisma.membership.findMany({
         where: { roleEntityId: input.roleEntityId }
       });
       return memberships;
@@ -455,7 +448,7 @@ export class MembershipConcept {
 
   async _getByStatus(input: { status: string }): Promise<Membership[]> {
     try {
-      const memberships = await this.prisma.membership.findMany({
+      const memberships = await prisma.membership.findMany({
         where: { status: input.status }
       });
       return memberships;
@@ -466,7 +459,7 @@ export class MembershipConcept {
 
   async _getPendingInvitations(input: { memberEntityType: string; memberEntityId?: string }): Promise<Membership[]> {
     try {
-      const memberships = await this.prisma.membership.findMany({
+      const memberships = await prisma.membership.findMany({
         where: {
           memberEntityType: input.memberEntityType,
           memberEntityId: input.memberEntityId || undefined,
@@ -486,7 +479,7 @@ export class MembershipConcept {
     targetEntityId: string;
   }): Promise<boolean[]> {
     try {
-      const membership = await this.prisma.membership.findFirst({
+      const membership = await prisma.membership.findFirst({
         where: {
           memberEntityType: input.memberEntityType,
           memberEntityId: input.memberEntityId,
@@ -509,7 +502,7 @@ export class MembershipConcept {
     roleEntityId: string;
   }): Promise<boolean[]> {
     try {
-      const membership = await this.prisma.membership.findFirst({
+      const membership = await prisma.membership.findFirst({
         where: {
           memberEntityType: input.memberEntityType,
           memberEntityId: input.memberEntityId,

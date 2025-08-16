@@ -1,19 +1,13 @@
-import { PrismaClient, APIRequest, APIResponse } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { APIRequest, APIResponse } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
 export class APIConcept {
-  private prisma: PrismaClient;
   // In-memory response coordination to avoid DB polling
   private responseWaiters: Map<string, {
     resolve: (value: APIResponse) => void;
     reject: (reason?: any) => void;
   }> = new Map();
   private responseCache: Map<string, APIResponse> = new Map();
-
-  constructor() {
-    this.prisma = prisma;
-  }
 
   async request(input: {
     method: string;
@@ -31,7 +25,7 @@ export class APIConcept {
         return { error: "Invalid HTTP method" };
       }
 
-      const request = await this.prisma.aPIRequest.create({
+      const request = await prisma.aPIRequest.create({
         data: {
           method: input.method,
           path: input.path,
@@ -69,7 +63,7 @@ export class APIConcept {
 
       console.log('[DEBUG] API.respond input body:', input.body);
 
-      const response = await this.prisma.aPIResponse.create({
+      const response = await prisma.aPIResponse.create({
         data: {
           requestId: resolvedRequestId,
           statusCode: input.status,
@@ -132,7 +126,7 @@ export class APIConcept {
 
   async _getRequest(input: { id: string }): Promise<APIRequest[]> {
     try {
-      const request = await this.prisma.aPIRequest.findUnique({ 
+      const request = await prisma.aPIRequest.findUnique({ 
         where: { id: input.id }
       });
       if (request) {
@@ -146,7 +140,7 @@ export class APIConcept {
 
   async _getResponse(input: { id: string }): Promise<APIResponse[]> {
     try {
-      const response = await this.prisma.aPIResponse.findUnique({ 
+      const response = await prisma.aPIResponse.findUnique({ 
         where: { id: input.id }
       });
       if (response) {
@@ -160,7 +154,7 @@ export class APIConcept {
 
   async _getRequestsByPath(input: { path: string }): Promise<APIRequest[]> {
     try {
-      const requests = await this.prisma.aPIRequest.findMany({ 
+      const requests = await prisma.aPIRequest.findMany({ 
         where: { path: input.path }
       });
       return requests;

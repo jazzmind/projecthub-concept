@@ -2,16 +2,16 @@
  * Prisma Integration for Concept Design Engine
  */
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { ConceptInterface } from './types';
 
 export interface PrismaConceptConfig {
-    prisma?: PrismaClient;
+    prisma?: typeof prisma;
     modelName?: string;
 }
 
 export interface PrismaConcept extends ConceptInterface {
-    prisma: PrismaClient;
+    prisma: typeof prisma;
     modelName: string;
 }
 
@@ -19,14 +19,14 @@ export interface PrismaConcept extends ConceptInterface {
  * Base class for Prisma-backed concepts
  */
 export class BasePrismaConcept implements PrismaConcept {
-    public prisma: PrismaClient;
+    public prisma: typeof prisma;
     public modelName: string;
 
     constructor(
         config: PrismaConceptConfig = {},
         modelName?: string
     ) {
-        this.prisma = config.prisma || new PrismaClient();
+        this.prisma = config.prisma || prisma;
         this.modelName = modelName || config.modelName || this.constructor.name.toLowerCase().replace('concept', '');
     }
 
@@ -366,7 +366,7 @@ export class PrismaTransactionHelpers {
      * Execute multiple operations in a transaction
      */
     static async transaction(
-        prisma: PrismaClient,
+        prisma: any,
         operations: ((tx: any) => Promise<any>)[]
     ): Promise<any[]> {
         return await prisma.$transaction(async (tx: any) => {
@@ -383,7 +383,7 @@ export class PrismaTransactionHelpers {
      * Atomic update with validation
      */
     static async atomicUpdate(
-        prisma: PrismaClient,
+        prisma: any,
         modelName: string,
         id: string,
         updateFn: (current: any) => any

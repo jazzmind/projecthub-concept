@@ -1,7 +1,4 @@
 import { Campaign, Membership, User, Role, Organization } from "@/lib/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
 
 async function bootstrapSystem() {
     const autoRegisterDomain = process.env.AUTO_REGISTER_DOMAIN;

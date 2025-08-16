@@ -1,13 +1,7 @@
-import { PrismaClient, Profile } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { Profile } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
 export class ProfileConcept {
-  private prisma: PrismaClient;
-
-  constructor() {
-    this.prisma = prisma;
-  }
 
   async create(input: {
     profileType: string;
@@ -17,7 +11,7 @@ export class ProfileConcept {
     timezone?: string;
   }): Promise<{ profile: Profile } | { error: string }> {
     try {
-      const profile = await this.prisma.profile.create({
+      const profile = await prisma.profile.create({
         data: {
           profileType: input.profileType,
           bio: input.bio,
@@ -47,7 +41,7 @@ export class ProfileConcept {
     hourlyRate?: number;
   }): Promise<{ profile: Profile } | { error: string }> {
     try {
-      const profile = await this.prisma.profile.update({
+      const profile = await prisma.profile.update({
         where: { id: input.id },
         data: {
           bio: input.bio,
@@ -73,7 +67,7 @@ export class ProfileConcept {
     id: string;
   }): Promise<{ profile: Profile } | { error: string }> {
     try {
-      const profile = await this.prisma.profile.update({
+      const profile = await prisma.profile.update({
         where: { id: input.id },
         data: { 
           isVerified: true,
@@ -93,7 +87,7 @@ export class ProfileConcept {
     id: string;
   }): Promise<{ profile: Profile } | { error: string }> {
     try {
-      const profile = await this.prisma.profile.update({
+      const profile = await prisma.profile.update({
         where: { id: input.id },
         data: { 
           isActive: true,
@@ -111,7 +105,7 @@ export class ProfileConcept {
     id: string;
   }): Promise<{ profile: Profile } | { error: string }> {
     try {
-      const profile = await this.prisma.profile.update({
+      const profile = await prisma.profile.update({
         where: { id: input.id },
         data: { 
           isActive: false,
@@ -130,7 +124,7 @@ export class ProfileConcept {
   }): Promise<{ success: boolean } | { error: string }> {
     try {
       // Delete profile
-      await this.prisma.profile.delete({
+      await prisma.profile.delete({
         where: { id: input.id }
       });
 
@@ -143,7 +137,7 @@ export class ProfileConcept {
   // Queries
   async _getById(input: { id: string }): Promise<Profile[]> {
     try {
-      const profile = await this.prisma.profile.findUnique({
+      const profile = await prisma.profile.findUnique({
         where: { id: input.id }
       });
       return profile ? [profile] : [];
@@ -153,7 +147,7 @@ export class ProfileConcept {
   }
 
   async _getByType(input: { profileType: string }): Promise<Profile[]> {
-    return await this.prisma.profile.findMany({
+    return await prisma.profile.findMany({
       where: { 
         profileType: input.profileType,
         isActive: true 
@@ -163,7 +157,7 @@ export class ProfileConcept {
   }
 
   async _getVerified(): Promise<Profile[]> {
-    return await this.prisma.profile.findMany({
+    return await prisma.profile.findMany({
       where: { 
         isVerified: true,
         isActive: true 
@@ -173,7 +167,7 @@ export class ProfileConcept {
   }
 
   async _getTopRated(input: { limit: number }): Promise<Profile[]> {
-    return await this.prisma.profile.findMany({
+    return await prisma.profile.findMany({
       where: { isActive: true },
       orderBy: { rating: 'desc' },
       take: input.limit
@@ -182,7 +176,7 @@ export class ProfileConcept {
 
   async _searchByKeywords(input: { keywords: string[] }): Promise<Profile[]> {
     const searchTerms = input.keywords.join(' | ');
-    return await this.prisma.profile.findMany({
+    return await prisma.profile.findMany({
       where: {
         isActive: true,
         OR: [
@@ -196,7 +190,7 @@ export class ProfileConcept {
   }
 
   async _getByCompany(input: { company: string }): Promise<Profile[]> {
-    return await this.prisma.profile.findMany({
+    return await prisma.profile.findMany({
       where: { 
         company: input.company,
         isActive: true 
@@ -206,7 +200,7 @@ export class ProfileConcept {
   }
 
   async _getActive(): Promise<Profile[]> {
-    return await this.prisma.profile.findMany({
+    return await prisma.profile.findMany({
       where: { isActive: true },
       orderBy: { createdAt: 'desc' }
     });

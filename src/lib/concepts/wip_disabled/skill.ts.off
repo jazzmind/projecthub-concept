@@ -4,7 +4,7 @@ export class SkillConcept {
   private prisma: PrismaClient;
 
   constructor() {
-    this.prisma = new PrismaClient();
+    prisma = new PrismaClient();
   }
 
   async create(input: {
@@ -20,7 +20,7 @@ export class SkillConcept {
   }): Promise<{ skill: Skill } | { error: string }> {
     try {
       // prevent duplicates for same (ownerEntity, ownerType, name, kind)
-      const existing = await this.prisma.skill.findFirst({
+      const existing = await prisma.skill.findFirst({
         where: {
           ownerEntity: input.ownerEntity,
           ownerType: input.ownerType,
@@ -32,7 +32,7 @@ export class SkillConcept {
         return { error: "Skill already exists for this owner" };
       }
 
-      const skill = await this.prisma.skill.create({
+      const skill = await prisma.skill.create({
         data: {
           ownerEntity: input.ownerEntity,
           ownerType: input.ownerType,
@@ -62,7 +62,7 @@ export class SkillConcept {
     // tags removed; use Tag concept + Relationship
   }): Promise<{ skill: Skill } | { error: string }> {
     try {
-      const skill = await this.prisma.skill.update({
+      const skill = await prisma.skill.update({
         where: {
           ownerEntity_ownerType_name_kind: {
             ownerEntity: input.ownerEntity,
@@ -92,7 +92,7 @@ export class SkillConcept {
     kind?: string;
   }): Promise<{ success: boolean } | { error: string }> {
     try {
-      await this.prisma.skill.delete({
+      await prisma.skill.delete({
         where: {
           ownerEntity_ownerType_name_kind: {
             ownerEntity: input.ownerEntity,
@@ -110,21 +110,21 @@ export class SkillConcept {
 
   // Queries (arrays only)
   async _getByOwner(input: { ownerEntity: string }): Promise<Skill[]> {
-    return await this.prisma.skill.findMany({
+    return await prisma.skill.findMany({
       where: { ownerEntity: input.ownerEntity },
       orderBy: { updatedAt: "desc" },
     });
   }
 
   async _getByName(input: { name: string; kind?: string }): Promise<Skill[]> {
-    return await this.prisma.skill.findMany({
+    return await prisma.skill.findMany({
       where: { name: input.name, kind: input.kind ?? undefined },
       orderBy: { updatedAt: "desc" },
     });
   }
 
   async _getExpertiseByName(input: { name: string }): Promise<Skill[]> {
-    return await this.prisma.skill.findMany({
+    return await prisma.skill.findMany({
       where: { name: input.name, isExpertise: true },
       orderBy: { updatedAt: "desc" },
     });
@@ -134,7 +134,7 @@ export class SkillConcept {
     const where = input.kind
       ? { name: { in: input.names }, kind: input.kind }
       : { name: { in: input.names } };
-    return await this.prisma.skill.findMany({
+    return await prisma.skill.findMany({
       where,
       orderBy: { updatedAt: "desc" },
     });

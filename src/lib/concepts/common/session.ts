@@ -1,13 +1,7 @@
-import { PrismaClient, Session } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { Session } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
 export class SessionConcept {
-  private prisma: PrismaClient;
-
-  constructor() {
-    this.prisma = prisma;
-  }
 
   async create(input: {
     sessionKey: string;
@@ -17,7 +11,7 @@ export class SessionConcept {
   }): Promise<{ session: Session } | { error: string }> {
     try {
       // Check if session key already exists
-      const existing = await this.prisma.session.findFirst({
+      const existing = await prisma.session.findFirst({
         where: { sessionKey: input.sessionKey }
       });
 
@@ -25,7 +19,7 @@ export class SessionConcept {
         return { error: "Session key already exists" };
       }
 
-      const session = await this.prisma.session.create({
+      const session = await prisma.session.create({
         data: {
           sessionKey: input.sessionKey,
           userAgent: input.userAgent,
@@ -47,7 +41,7 @@ export class SessionConcept {
     context: string;
   }): Promise<{ session: Session } | { error: string }> {
     try {
-      const session = await this.prisma.session.findFirst({
+      const session = await prisma.session.findFirst({
         where: { sessionKey: input.sessionKey }
       });
 
@@ -55,7 +49,7 @@ export class SessionConcept {
         return { error: "Session not found" };
       }
 
-      const updated = await this.prisma.session.update({
+      const updated = await prisma.session.update({
         where: { id: session.id },
         data: {
           currentContext: input.context,
@@ -73,7 +67,7 @@ export class SessionConcept {
     sessionKey: string;
   }): Promise<{ session: Session } | { error: string }> {
     try {
-      const session = await this.prisma.session.findFirst({
+      const session = await prisma.session.findFirst({
         where: { sessionKey: input.sessionKey }
       });
 
@@ -81,7 +75,7 @@ export class SessionConcept {
         return { error: "Session not found" };
       }
 
-      const updated = await this.prisma.session.update({
+      const updated = await prisma.session.update({
         where: { id: session.id },
         data: {
           currentContext: null,
@@ -99,7 +93,7 @@ export class SessionConcept {
     sessionKey: string;
   }): Promise<{ session: Session } | { error: string }> {
     try {
-      const session = await this.prisma.session.findFirst({
+      const session = await prisma.session.findFirst({
         where: { sessionKey: input.sessionKey }
       });
 
@@ -107,7 +101,7 @@ export class SessionConcept {
         return { error: "Session not found" };
       }
 
-      const updated = await this.prisma.session.update({
+      const updated = await prisma.session.update({
         where: { id: session.id },
         data: {
           lastActivityAt: new Date()
@@ -125,7 +119,7 @@ export class SessionConcept {
     preferences: object;
   }): Promise<{ session: Session } | { error: string }> {
     try {
-      const session = await this.prisma.session.findFirst({
+      const session = await prisma.session.findFirst({
         where: { sessionKey: input.sessionKey }
       });
 
@@ -133,7 +127,7 @@ export class SessionConcept {
         return { error: "Session not found" };
       }
 
-      const updated = await this.prisma.session.update({
+      const updated = await prisma.session.update({
         where: { id: session.id },
         data: {
           preferences: input.preferences,
@@ -151,7 +145,7 @@ export class SessionConcept {
     sessionKey: string;
   }): Promise<{ session: Session } | { error: string }> {
     try {
-      const session = await this.prisma.session.findFirst({
+      const session = await prisma.session.findFirst({
         where: { sessionKey: input.sessionKey }
       });
 
@@ -159,7 +153,7 @@ export class SessionConcept {
         return { error: "Session not found" };
       }
 
-      const updated = await this.prisma.session.update({
+      const updated = await prisma.session.update({
         where: { id: session.id },
         data: {
           isActive: false,
@@ -177,7 +171,7 @@ export class SessionConcept {
     sessionKey: string;
   }): Promise<{ success: boolean } | { error: string }> {
     try {
-      const session = await this.prisma.session.findFirst({
+      const session = await prisma.session.findFirst({
         where: { sessionKey: input.sessionKey }
       });
 
@@ -185,7 +179,7 @@ export class SessionConcept {
         return { error: "Session not found" };
       }
 
-      await this.prisma.session.delete({
+      await prisma.session.delete({
         where: { id: session.id }
       });
 
@@ -198,7 +192,7 @@ export class SessionConcept {
   // Queries
   async _getBySessionKey(input: { sessionKey: string }): Promise<Session[]> {
     try {
-      const session = await this.prisma.session.findFirst({
+      const session = await prisma.session.findFirst({
         where: { sessionKey: input.sessionKey }
       });
       return session ? [session] : [];
@@ -209,7 +203,7 @@ export class SessionConcept {
 
   async _getActive(input: { sessionKey: string }): Promise<Session[]> {
     try {
-      const session = await this.prisma.session.findFirst({
+      const session = await prisma.session.findFirst({
         where: {
           sessionKey: input.sessionKey,
           isActive: true
@@ -223,7 +217,7 @@ export class SessionConcept {
 
   async _getCurrentContext(input: { sessionKey: string }): Promise<string[]> {
     try {
-      const session = await this.prisma.session.findFirst({
+      const session = await prisma.session.findFirst({
         where: { sessionKey: input.sessionKey }
       });
       return session?.currentContext ? [session.currentContext] : [];
@@ -234,7 +228,7 @@ export class SessionConcept {
 
   async _isActiveSession(input: { sessionKey: string }): Promise<boolean[]> {
     try {
-      const session = await this.prisma.session.findFirst({
+      const session = await prisma.session.findFirst({
         where: {
           sessionKey: input.sessionKey,
           isActive: true
@@ -254,7 +248,7 @@ export class SessionConcept {
 
   async _getExpiredSessions(): Promise<Session[]> {
     try {
-      const sessions = await this.prisma.session.findMany({
+      const sessions = await prisma.session.findMany({
         where: {
           OR: [
             { isActive: false },

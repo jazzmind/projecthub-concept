@@ -6,7 +6,7 @@ export class TagConcept {
   private prisma: PrismaClient;
 
   constructor() {
-    this.prisma = prisma;
+    prisma = prisma;
   }
 
   async create(input: {
@@ -18,7 +18,7 @@ export class TagConcept {
   }): Promise<{ tag: Tag } | { error: string }> {
     try {
       // Check uniqueness
-      const existing = await this.prisma.tag.findFirst({
+      const existing = await prisma.tag.findFirst({
         where: { 
           OR: [
             { tag: input.tag },
@@ -31,7 +31,7 @@ export class TagConcept {
         return { error: "Tag with this identifier or name already exists" };
       }
 
-      const tag = await this.prisma.tag.create({
+      const tag = await prisma.tag.create({
         data: {
           tag: input.tag,
           name: input.name,
@@ -57,7 +57,7 @@ export class TagConcept {
     category?: string;
   }): Promise<{ tag: Tag } | { error: string }> {
     try {
-      const tag = await this.prisma.tag.update({
+      const tag = await prisma.tag.update({
         where: { tag: input.tag },
         data: {
           name: input.name,
@@ -78,7 +78,7 @@ export class TagConcept {
     tag: string;
   }): Promise<{ tag: Tag } | { error: string }> {
     try {
-      const tag = await this.prisma.tag.update({
+      const tag = await prisma.tag.update({
         where: { tag: input.tag },
         data: { 
           usage_count: { increment: 1 },
@@ -96,7 +96,7 @@ export class TagConcept {
     tag: string;
   }): Promise<{ tag: Tag } | { error: string }> {
     try {
-      const tag = await this.prisma.tag.update({
+      const tag = await prisma.tag.update({
         where: { tag: input.tag },
         data: { 
           usage_count: { decrement: 1 },
@@ -114,7 +114,7 @@ export class TagConcept {
     tag: string;
   }): Promise<{ tag: Tag } | { error: string }> {
     try {
-      const tag = await this.prisma.tag.update({
+      const tag = await prisma.tag.update({
         where: { tag: input.tag },
         data: { 
           isActive: false,
@@ -133,7 +133,7 @@ export class TagConcept {
   }): Promise<{ success: boolean } | { error: string }> {
     try {
       // Only allow deletion of non-system tags with zero usage
-      const tagData = await this.prisma.tag.findUnique({
+      const tagData = await prisma.tag.findUnique({
         where: { tag: input.tag }
       });
 
@@ -147,7 +147,7 @@ export class TagConcept {
         return { error: "Cannot delete tags that are in use" };
       }
 
-      await this.prisma.tag.delete({
+      await prisma.tag.delete({
         where: { tag: input.tag }
       });
 
@@ -159,21 +159,21 @@ export class TagConcept {
 
   // Queries
   async _getByTag(input: { tag: string }): Promise<Tag[]> {
-    const tag = await this.prisma.tag.findUnique({
+    const tag = await prisma.tag.findUnique({
       where: { tag: input.tag }
     });
     return tag ? [tag] : [];
   }
 
   async _getByName(input: { name: string }): Promise<Tag[]> {
-    const tag = await this.prisma.tag.findFirst({
+    const tag = await prisma.tag.findFirst({
       where: { name: input.name }
     });
     return tag ? [tag] : [];
   }
 
   async _getByCategory(input: { category: string }): Promise<Tag[]> {
-    return await this.prisma.tag.findMany({
+    return await prisma.tag.findMany({
       where: { 
         category: input.category,
         isActive: true 
@@ -183,7 +183,7 @@ export class TagConcept {
   }
 
   async _getActive(): Promise<Tag[]> {
-    return await this.prisma.tag.findMany({
+    return await prisma.tag.findMany({
       where: { isActive: true },
       orderBy: { name: 'asc' }
     });
@@ -192,7 +192,7 @@ export class TagConcept {
   // _getSystemTags removed - isSystemTag field doesn't exist in schema
 
   async _getMostUsed(input: { limit: number }): Promise<Tag[]> {
-    return await this.prisma.tag.findMany({
+    return await prisma.tag.findMany({
       where: { isActive: true },
       orderBy: { usage_count: 'desc' },
       take: input.limit
@@ -200,7 +200,7 @@ export class TagConcept {
   }
 
   async _getByColor(input: { color: string }): Promise<Tag[]> {
-    return await this.prisma.tag.findMany({
+    return await prisma.tag.findMany({
       where: { 
         color: input.color,
         isActive: true 
@@ -210,7 +210,7 @@ export class TagConcept {
   }
 
   async _searchByName(input: { searchTerm: string }): Promise<Tag[]> {
-    return await this.prisma.tag.findMany({
+    return await prisma.tag.findMany({
       where: { 
         name: { contains: input.searchTerm, mode: 'insensitive' },
         isActive: true 
@@ -220,7 +220,7 @@ export class TagConcept {
   }
 
   async _getUnused(): Promise<Tag[]> {
-    return await this.prisma.tag.findMany({
+    return await prisma.tag.findMany({
       where: { 
         usage_count: 0,
         isActive: true

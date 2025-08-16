@@ -6,7 +6,7 @@ export class NotificationConcept {
   private prisma: PrismaClient;
 
   constructor() {
-    this.prisma = prisma;
+    prisma = prisma;
   }
 
   async create(input: {
@@ -18,7 +18,7 @@ export class NotificationConcept {
     metadata?: object;
   }): Promise<{ notification: Notification } | { error: string }> {
     try {
-      const notification = await this.prisma.notification.create({
+      const notification = await prisma.notification.create({
         data: {
           notification: input.notification,
           recipientEntity: input.recipientEntity,
@@ -40,7 +40,7 @@ export class NotificationConcept {
     notification: string;
   }): Promise<{ notification: Notification } | { error: string }> {
     try {
-      const notification = await this.prisma.notification.update({
+      const notification = await prisma.notification.update({
         where: { notification: input.notification },
         data: { 
           isRead: true,
@@ -58,7 +58,7 @@ export class NotificationConcept {
     notification: string;
   }): Promise<{ notification: Notification } | { error: string }> {
     try {
-      const notification = await this.prisma.notification.update({
+      const notification = await prisma.notification.update({
         where: { notification: input.notification },
         data: { 
           updatedAt: new Date()
@@ -75,7 +75,7 @@ export class NotificationConcept {
     notification: string;
   }): Promise<{ success: boolean } | { error: string }> {
     try {
-      await this.prisma.notification.delete({
+      await prisma.notification.delete({
         where: { notification: input.notification }
       });
 
@@ -87,21 +87,21 @@ export class NotificationConcept {
 
   // Queries
   async _getByNotification(input: { notification: string }): Promise<Notification[]> {
-    const notification = await this.prisma.notification.findUnique({
+    const notification = await prisma.notification.findUnique({
       where: { notification: input.notification }
     });
     return notification ? [notification] : [];
   }
 
   async _getByRecipient(input: { recipientEntity: string }): Promise<Notification[]> {
-    return await this.prisma.notification.findMany({
+    return await prisma.notification.findMany({
       where: { recipientEntity: input.recipientEntity },
       orderBy: { createdAt: 'desc' }
     });
   }
 
   async _getUnreadByRecipient(input: { recipientEntity: string }): Promise<Notification[]> {
-    return await this.prisma.notification.findMany({
+    return await prisma.notification.findMany({
       where: { 
         recipientEntity: input.recipientEntity,
         isRead: false 
@@ -111,7 +111,7 @@ export class NotificationConcept {
   }
 
   async _getByType(input: { notificationType: string }): Promise<Notification[]> {
-    return await this.prisma.notification.findMany({
+    return await prisma.notification.findMany({
       where: { notificationType: input.notificationType },
       orderBy: { createdAt: 'desc' }
     });
@@ -122,7 +122,7 @@ export class NotificationConcept {
   // Note: _getUndelivered removed as isDelivered field doesn't exist in schema
 
   async _getRecentByRecipient(input: { recipientEntity: string, limit: number }): Promise<Notification[]> {
-    return await this.prisma.notification.findMany({
+    return await prisma.notification.findMany({
       where: { recipientEntity: input.recipientEntity },
       orderBy: { createdAt: 'desc' },
       take: input.limit

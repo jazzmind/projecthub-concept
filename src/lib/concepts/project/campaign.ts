@@ -1,17 +1,11 @@
-import { PrismaClient, Campaign } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { Campaign } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
 export class CampaignConcept {
-  private prisma: PrismaClient;
-
-  constructor() {
-    this.prisma = prisma;
-  }
 
   async listActive(): Promise<{ campaigns: Campaign[] } | { error: string }> {
     try {
-      const campaigns = await this.prisma.campaign.findMany({ where: { status: "active" } });
+      const campaigns = await prisma.campaign.findMany({ where: { status: "active" } });
       return { campaigns };
     } catch (error) {
       return { error: `Failed to list active campaigns: ${error}` };
@@ -20,7 +14,7 @@ export class CampaignConcept {
 
   async listAll(): Promise<{ campaigns: Campaign[] } | { error: string }> {
     try {
-      const campaigns = await this.prisma.campaign.findMany({});
+      const campaigns = await prisma.campaign.findMany({});
       return { campaigns };
     } catch (error) {
       return { error: `Failed to list campaigns: ${error}` };
@@ -29,7 +23,7 @@ export class CampaignConcept {
 
   async get(input: { id: string }): Promise<{ campaign: Campaign } | { error: string }> {
     try {
-      const found = await this.prisma.campaign.findFirst({ where: { id: input.id } });
+      const found = await prisma.campaign.findFirst({ where: { id: input.id } });
       if (!found) return { error: "Campaign not found" };
       return { campaign: found };
     } catch (error) {
@@ -46,7 +40,7 @@ export class CampaignConcept {
   }): Promise<{ campaign: Campaign } | { error: string }> {
     try {
 
-      const campaign = await this.prisma.campaign.create({
+      const campaign = await prisma.campaign.create({
         data: {
           name: input.name,
           description: input.description,
@@ -77,7 +71,7 @@ export class CampaignConcept {
     contactEmail?: string;
   }): Promise<{ campaign: Campaign } | { error: string }> {
     try {
-      const existing = await this.prisma.campaign.findFirst({
+      const existing = await prisma.campaign.findFirst({
         where: { id: input.id }
       });
 
@@ -93,7 +87,7 @@ export class CampaignConcept {
       if (input.endDate !== undefined) updateData.endDate = input.endDate;
       if (input.contactEmail !== undefined) updateData.contactEmail = input.contactEmail;
 
-      const updated = await this.prisma.campaign.update({
+      const updated = await prisma.campaign.update({
         where: { id: existing.id },
         data: updateData
       });
@@ -109,7 +103,7 @@ export class CampaignConcept {
     status: string;
   }): Promise<{ campaign: Campaign } | { error: string }> {
     try {
-      const existing = await this.prisma.campaign.findFirst({
+      const existing = await prisma.campaign.findFirst({
         where: { id: input.id }
       });
 
@@ -117,7 +111,7 @@ export class CampaignConcept {
         return { error: "Campaign not found" };
       }
 
-      const updated = await this.prisma.campaign.update({
+      const updated = await prisma.campaign.update({
         where: { id: existing.id },
         data: { status: input.status }
       });
@@ -133,7 +127,7 @@ export class CampaignConcept {
     participantId: string;
   }): Promise<{ campaign: Campaign } | { error: string }> {
     try {
-      const existing = await this.prisma.campaign.findFirst({
+      const existing = await prisma.campaign.findFirst({
         where: { id: input.id }
       });
 
@@ -151,7 +145,7 @@ export class CampaignConcept {
         return { error: "Campaign has reached maximum participants" };
       }
 
-      const updated = await this.prisma.campaign.update({
+      const updated = await prisma.campaign.update({
         where: { id: existing.id },
         data: {
           participantIds: [...existing.participantIds, input.participantId]
@@ -169,7 +163,7 @@ export class CampaignConcept {
     participantId: string;
   }): Promise<{ campaign: Campaign } | { error: string }> {
     try {
-      const existing = await this.prisma.campaign.findFirst({
+      const existing = await prisma.campaign.findFirst({
         where: { id: input.id }
       });
 
@@ -177,7 +171,7 @@ export class CampaignConcept {
         return { error: "Campaign not found" };
       }
 
-      const updated = await this.prisma.campaign.update({
+      const updated = await prisma.campaign.update({
         where: { id: existing.id },
         data: {
           participantIds: existing.participantIds.filter(id => id !== input.participantId)
@@ -196,7 +190,7 @@ export class CampaignConcept {
     projectConstraints?: object;
   }): Promise<{ campaign: Campaign } | { error: string }> {
     try {
-      const existing = await this.prisma.campaign.findFirst({
+      const existing = await prisma.campaign.findFirst({
         where: { id: input.id }
       });
 
@@ -208,7 +202,7 @@ export class CampaignConcept {
       if (input.industryConstraints !== undefined) updateData.industryConstraints = input.industryConstraints;
       if (input.projectConstraints !== undefined) updateData.projectConstraints = input.projectConstraints;
 
-      const updated = await this.prisma.campaign.update({
+      const updated = await prisma.campaign.update({
         where: { id: existing.id },
         data: updateData
       });
@@ -224,7 +218,7 @@ export class CampaignConcept {
     landingPageConfig: object;
   }): Promise<{ campaign: Campaign } | { error: string }> {
     try {
-      const existing = await this.prisma.campaign.findFirst({
+      const existing = await prisma.campaign.findFirst({
         where: { id: input.id }
       });
 
@@ -232,7 +226,7 @@ export class CampaignConcept {
         return { error: "Campaign not found" };
       }
 
-      const updated = await this.prisma.campaign.update({
+      const updated = await prisma.campaign.update({
         where: { id: existing.id },
         data: { landingPageConfig: input.landingPageConfig }
       });
@@ -245,7 +239,7 @@ export class CampaignConcept {
 
   async delete(input: { id: string }): Promise<{ success: boolean } | { error: string }> {
     try {
-      const existing = await this.prisma.campaign.findFirst({
+      const existing = await prisma.campaign.findFirst({
         where: { id: input.id }
       });
 
@@ -258,7 +252,7 @@ export class CampaignConcept {
         return { error: "Cannot delete active campaign with participants" };
       }
 
-      await this.prisma.campaign.delete({
+      await prisma.campaign.delete({
         where: { id: existing.id }
       });
 
@@ -271,7 +265,7 @@ export class CampaignConcept {
   // Queries
   async _getByName(input: { name: string }): Promise<Campaign[]> {
     try {
-      const campaign = await this.prisma.campaign.findFirst({
+      const campaign = await prisma.campaign.findFirst({
         where: { name: input.name }
       });
       return campaign ? [campaign] : [];
@@ -282,7 +276,7 @@ export class CampaignConcept {
 
   async _getById(input: { id: string }): Promise<Campaign[]> {
     try {
-      const campaign = await this.prisma.campaign.findFirst({
+      const campaign = await prisma.campaign.findFirst({
         where: { id: input.id }
       });
       return campaign ? [campaign] : [];
@@ -293,7 +287,7 @@ export class CampaignConcept {
 
   async _getByStatus(input: { status: string }): Promise<Campaign[]> {
     try {
-      const campaigns = await this.prisma.campaign.findMany({
+      const campaigns = await prisma.campaign.findMany({
         where: { status: input.status }
       });
       return campaigns;
@@ -304,7 +298,7 @@ export class CampaignConcept {
 
   async _getActive(): Promise<Campaign[]> {
     try {
-      const campaigns = await this.prisma.campaign.findMany({
+      const campaigns = await prisma.campaign.findMany({
         where: { status: "active" }
       });
       return campaigns;
@@ -315,7 +309,7 @@ export class CampaignConcept {
 
   async _getUpcoming(): Promise<Campaign[]> {
     try {
-      const campaigns = await this.prisma.campaign.findMany({
+      const campaigns = await prisma.campaign.findMany({
         where: {
           startDate: {
             gte: new Date()
@@ -334,7 +328,7 @@ export class CampaignConcept {
     endDate: Date; 
   }): Promise<Campaign[]> {
     try {
-      const campaigns = await this.prisma.campaign.findMany({
+      const campaigns = await prisma.campaign.findMany({
         where: {
           startDate: {
             gte: input.startDate,
@@ -350,7 +344,7 @@ export class CampaignConcept {
 
   async _getByParticipant(input: { participantId: string }): Promise<Campaign[]> {
     try {
-      const campaigns = await this.prisma.campaign.findMany({
+      const campaigns = await prisma.campaign.findMany({
         where: {
           participantIds: {
             has: input.participantId

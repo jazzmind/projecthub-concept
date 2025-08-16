@@ -1,13 +1,7 @@
-import { PrismaClient, Team } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { Team } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
 export class TeamConcept {
-  private prisma: PrismaClient;
-
-  constructor() {
-    this.prisma = prisma;
-  }
 
   async create(input: {
     name: string;
@@ -20,7 +14,7 @@ export class TeamConcept {
       }
 
   
-      const team = await this.prisma.team.create({
+      const team = await prisma.team.create({
         data: {
           name: input.name,
           description: input.description,
@@ -46,7 +40,7 @@ export class TeamConcept {
       if (input.description !== undefined) updateData.description = input.description;
       if (input.status !== undefined) updateData.status = input.status;
 
-      const team = await this.prisma.team.update({
+      const team = await prisma.team.update({
         where: { id: input.id },
         data: updateData
       });
@@ -59,7 +53,7 @@ export class TeamConcept {
 
   async delete(input: { id: string }): Promise<{ success: boolean } | { error: string }> {
     try {
-      await this.prisma.team.delete({
+      await prisma.team.delete({
         where: { id: input.id }
       });
 
@@ -72,7 +66,7 @@ export class TeamConcept {
   // Queries
   async _getById(input: { id: string }): Promise<Team[]> {
     try {
-      const team = await this.prisma.team.findUnique({
+      const team = await prisma.team.findUnique({
         where: { id: input.id }
       });
       return team ? [team] : [];
@@ -83,7 +77,7 @@ export class TeamConcept {
 
   async _getByStatus(input: { status: string }): Promise<Team[]> {
     try {
-      const teams = await this.prisma.team.findMany({
+      const teams = await prisma.team.findMany({
         where: { status: input.status }
       });
       return teams;
@@ -94,7 +88,7 @@ export class TeamConcept {
 
   async _searchByKeywords(input: { keywords: string[] }): Promise<Team[]> {
     try {
-      const teams = await this.prisma.team.findMany({
+      const teams = await prisma.team.findMany({
         where: {
           OR: input.keywords.flatMap(keyword => [
             { name: { contains: keyword, mode: "insensitive" } },
@@ -115,7 +109,7 @@ export class TeamConcept {
       // This is a compatibility method for the existing sync
       // In the generic architecture, this would be handled by Membership concept
       // For now, return the team unchanged
-      const team = await this.prisma.team.findUnique({
+      const team = await prisma.team.findUnique({
         where: { id: input.id }
       });
       

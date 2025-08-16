@@ -1,14 +1,8 @@
-import { PrismaClient, Project, Relationship } from "@prisma/client";
+import { Project } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import { projectExtractionService } from "../../ai/projectExtractionService";
 
-const prisma = new PrismaClient();
-
 export class ProjectConcept {
-  private prisma: PrismaClient;
-
-  constructor() {
-    this.prisma = prisma;
-  }
 
   async create(input: {
     title: string;
@@ -27,7 +21,7 @@ export class ProjectConcept {
         return { error: "Title and description are required" };
       }
 
-      const project = await this.prisma.project.create({
+      const project = await prisma.project.create({
         data: {
           title: input.title,
           description: input.description,
@@ -75,7 +69,7 @@ export class ProjectConcept {
       if (input.deliverables !== undefined) updateData.deliverables = input.deliverables;
       if (input.status !== undefined) updateData.status = input.status;
 
-      const project = await this.prisma.project.update({
+      const project = await prisma.project.update({
         where: { id: input.id },
         data: updateData
       });
@@ -120,7 +114,7 @@ export class ProjectConcept {
 
       // Create the project in database
       input.onProgress?.('Creating project record', 95);
-      const project = await this.prisma.project.create({
+      const project = await prisma.project.create({
         data: {
           title: extractedData.title,
           description: extractedData.description,
@@ -144,7 +138,7 @@ export class ProjectConcept {
       // Create relationship between project and organization
       input.onProgress?.('Linking project to organization', 98);
       try {
-        await this.prisma.relationship.create({
+        await prisma.relationship.create({
           data: {
             fromEntityType: 'project',
             fromEntityId: project.id,
@@ -171,7 +165,7 @@ export class ProjectConcept {
 
   async delete(input: { id: string }): Promise<{ success: boolean } | { error: string }> {
     try {
-      await this.prisma.project.delete({
+      await prisma.project.delete({
         where: { id: input.id }
       });
 
@@ -184,7 +178,7 @@ export class ProjectConcept {
   // Queries
   async _getById(input: { id: string }): Promise<Project[]> {
     try {
-      const project = await this.prisma.project.findUnique({
+      const project = await prisma.project.findUnique({
         where: { id: input.id }
       });
       return project ? [project] : [];
@@ -195,7 +189,7 @@ export class ProjectConcept {
 
   async _getByIndustry(input: { industry: string }): Promise<Project[]> {
     try {
-      const projects = await this.prisma.project.findMany({
+      const projects = await prisma.project.findMany({
         where: { industry: input.industry }
       });
       return projects;
@@ -206,7 +200,7 @@ export class ProjectConcept {
 
   async _getByDomain(input: { domain: string }): Promise<Project[]> {
     try {
-      const projects = await this.prisma.project.findMany({
+      const projects = await prisma.project.findMany({
         where: { domain: input.domain }
       });
       return projects;
@@ -217,7 +211,7 @@ export class ProjectConcept {
 
   async _getByDifficulty(input: { difficulty: string }): Promise<Project[]> {
     try {
-      const projects = await this.prisma.project.findMany({
+      const projects = await prisma.project.findMany({
         where: { difficulty: input.difficulty }
       });
       return projects;
@@ -228,7 +222,7 @@ export class ProjectConcept {
 
   async _getByStatus(input: { status: string }): Promise<Project[]> {
     try {
-      const projects = await this.prisma.project.findMany({
+      const projects = await prisma.project.findMany({
         where: { status: input.status }
       });
       return projects;
@@ -239,7 +233,7 @@ export class ProjectConcept {
 
   async _searchByKeywords(input: { keywords: string[] }): Promise<Project[]> {
     try {
-      const projects = await this.prisma.project.findMany({
+      const projects = await prisma.project.findMany({
         where: {
           OR: input.keywords.flatMap(keyword => [
             { title: { contains: keyword, mode: "insensitive" } },
@@ -257,7 +251,7 @@ export class ProjectConcept {
 
   async _getByEstimatedHours(input: { minHours: number; maxHours: number }): Promise<Project[]> {
     try {
-      const projects = await this.prisma.project.findMany({
+      const projects = await prisma.project.findMany({
         where: {
           estimatedHours: {
             gte: input.minHours,
@@ -274,7 +268,7 @@ export class ProjectConcept {
   async _getByOrganization(input: { organizationId: string }): Promise<Project[]> {
     try {
       // Get project IDs that belong to the organization via relationships
-      const relationships = await this.prisma.relationship.findMany({
+      const relationships = await prisma.relationship.findMany({
         where: {
           fromEntityType: 'project',
           toEntityType: 'organization',
@@ -290,7 +284,7 @@ export class ProjectConcept {
       }
 
       // Get the actual projects
-      const projects = await this.prisma.project.findMany({
+      const projects = await prisma.project.findMany({
         where: {
           id: { in: projectIds }
         },

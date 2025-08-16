@@ -1,14 +1,7 @@
-import { PrismaClient, User } from "@prisma/client";
-import { InputJsonValue } from "@prisma/client/runtime/library";
-
-const prisma = new PrismaClient();
+import { User } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
 export class UserConcept {
-  private prisma: PrismaClient;
-
-  constructor() {
-    this.prisma = prisma;
-  }
 
   async register(input: {
     email: string;
@@ -24,7 +17,7 @@ export class UserConcept {
       }
 
       // Check if email already exists
-      const existingUser = await this.prisma.user.findUnique({
+      const existingUser = await prisma.user.findUnique({
         where: { email: input.email }
       });
       if (existingUser) {
@@ -32,7 +25,7 @@ export class UserConcept {
       }
 
 
-      const user = await this.prisma.user.create({
+      const user = await prisma.user.create({
         data: {
           email: input.email,
           name: input.name,
@@ -51,7 +44,7 @@ export class UserConcept {
 
   async verifyEmail(input: { id: string }): Promise<{ user: User } | { error: string }> {
     try {
-      const existingUser = await this.prisma.user.findFirst({
+      const existingUser = await prisma.user.findFirst({
         where: { id: input.id }
       });
 
@@ -59,7 +52,7 @@ export class UserConcept {
         return { error: "User not found" };
       }
 
-      const updatedUser = await this.prisma.user.update({
+      const updatedUser = await prisma.user.update({
         where: { id: existingUser.id },
         data: { emailVerified: true }
       });
@@ -73,7 +66,7 @@ export class UserConcept {
 
   async updateLastLogin(input: { id: string }): Promise<{ user: User } | { error: string }> {
     try {
-      const existingUser = await this.prisma.user.findFirst({
+      const existingUser = await prisma.user.findFirst({
         where: { id: input.id }
       });
 
@@ -81,7 +74,7 @@ export class UserConcept {
         return { error: "User not found" };
       }
 
-      const updatedUser = await this.prisma.user.update({
+      const updatedUser = await prisma.user.update({
         where: { id: existingUser.id },
         data: { lastLoginAt: new Date() }
       });
@@ -97,7 +90,7 @@ export class UserConcept {
     reason: string;
   }): Promise<{ user: User } | { error: string }> {
     try {
-      const existingUser = await this.prisma.user.findFirst({
+      const existingUser = await prisma.user.findFirst({
         where: { id: input.id }
       });
 
@@ -105,7 +98,7 @@ export class UserConcept {
         return { error: "User not found" };
       }
 
-      const updatedUser = await this.prisma.user.update({
+      const updatedUser = await prisma.user.update({
         where: { id: existingUser.id },
         data: {
           isSuspended: true,
@@ -122,7 +115,7 @@ export class UserConcept {
 
   async unsuspendUser(input: { id: string }): Promise<{ user: User } | { error: string }> {
     try {
-      const existingUser = await this.prisma.user.findFirst({
+      const existingUser = await prisma.user.findFirst({
         where: { id: input.id }
       });
 
@@ -130,7 +123,7 @@ export class UserConcept {
         return { error: "User not found" };
       }
 
-      const updatedUser = await this.prisma.user.update({
+      const updatedUser = await prisma.user.update({
         where: { id: existingUser.id },
         data: {
           isSuspended: false,
@@ -152,7 +145,7 @@ export class UserConcept {
     preferences?: object;
   }): Promise<{ user: User } | { error: string }> {
     try {
-      const existingUser = await this.prisma.user.findFirst({
+      const existingUser = await prisma.user.findFirst({
         where: { id: input.id }
       });
 
@@ -160,12 +153,12 @@ export class UserConcept {
         return { error: "User not found" };
       }
 
-      const updatedUser = await this.prisma.user.update({
+      const updatedUser = await prisma.user.update({
         where: { id: existingUser.id },
         data: { 
           name: input.name || existingUser.name, 
           image: input.image || existingUser.image, 
-          preferences: input.preferences !== undefined ? input.preferences as InputJsonValue : undefined
+          preferences: input.preferences !== undefined ? input.preferences as any : undefined
         }
       });
 
@@ -195,7 +188,7 @@ export class UserConcept {
       const query = input.q.trim();
       if (!query) return { users: [] };
       
-      const users = await this.prisma.user.findMany({
+      const users = await prisma.user.findMany({
         where: {
           isActive: true,
           isSuspended: false,
@@ -218,7 +211,7 @@ export class UserConcept {
 
   async delete(input: { id: string }): Promise<{ success: boolean } | { error: string }> {
     try {
-      const existingUser = await this.prisma.user.findFirst({
+      const existingUser = await prisma.user.findFirst({
         where: { id: input.id }
       });
 
@@ -226,7 +219,7 @@ export class UserConcept {
         return { error: "User not found" };
       }
 
-      await this.prisma.user.update({
+      await prisma.user.update({
         where: { id: existingUser.id },
         data: { isActive: false }
       });
@@ -240,7 +233,7 @@ export class UserConcept {
   // Queries
     async _getById(input: { id: string }): Promise<User[]> {
     try {
-      const user = await this.prisma.user.findFirst({
+      const user = await prisma.user.findFirst({
         where: { id: input.id }
       });
       return user ? [user] : [];
@@ -251,7 +244,7 @@ export class UserConcept {
 
   async _getByEmail(input: { email: string }): Promise<User[]> {
     try {
-      const user = await this.prisma.user.findUnique({
+      const user = await prisma.user.findUnique({
         where: { email: input.email }
       });
       return user ? [user] : [];
@@ -262,7 +255,7 @@ export class UserConcept {
 
   async _getActiveUsers(): Promise<User[]> {
     try {
-      const users = await this.prisma.user.findMany({
+      const users = await prisma.user.findMany({
         where: {
           isActive: true,
           isSuspended: false
@@ -276,7 +269,7 @@ export class UserConcept {
 
   async _getUnverifiedUsers(): Promise<User[]> {
     try {
-      const users = await this.prisma.user.findMany({
+      const users = await prisma.user.findMany({
         where: {
           emailVerified: false,
           isActive: true
@@ -290,7 +283,7 @@ export class UserConcept {
 
   async _getSuspendedUsers(): Promise<User[]> {
     try {
-      const users = await this.prisma.user.findMany({
+      const users = await prisma.user.findMany({
         where: {
           isSuspended: true
         }

@@ -1,11 +1,9 @@
 #!/usr/bin/env npx tsx
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import fs from 'fs';
 import path from 'path';
 import { Command } from 'commander';
-
-const prisma = new PrismaClient();
 
 interface ProjectBrief {
   project_title: string;

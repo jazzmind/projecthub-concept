@@ -6,7 +6,7 @@ export class SettingConcept {
   private prisma: PrismaClient;
 
   constructor() {
-    this.prisma = prisma;
+    prisma = prisma;
   }
 
   async set(input: {
@@ -21,7 +21,7 @@ export class SettingConcept {
   }): Promise<{ setting: Setting } | { error: string }> {
     try {
       // Check if setting already exists
-      const existing = await this.prisma.setting.findFirst({
+      const existing = await prisma.setting.findFirst({
         where: {
           ownerEntity: input.ownerEntity,
           key: input.key,
@@ -32,7 +32,7 @@ export class SettingConcept {
 
       if (existing) {
         // Update existing setting
-        const setting = await this.prisma.setting.update({
+        const setting = await prisma.setting.update({
           where: { setting: existing.setting },
           data: {
             value: input.value,
@@ -44,7 +44,7 @@ export class SettingConcept {
         return { setting };
       } else {
         // Create new setting
-        const setting = await this.prisma.setting.create({
+        const setting = await prisma.setting.create({
           data: {
             setting: input.setting,
             ownerEntity: input.ownerEntity,
@@ -69,7 +69,7 @@ export class SettingConcept {
     metadata?: object;
   }): Promise<{ setting: Setting } | { error: string }> {
     try {
-      const setting = await this.prisma.setting.update({
+      const setting = await prisma.setting.update({
         where: { setting: input.setting },
         data: { 
           value: input.value,
@@ -88,7 +88,7 @@ export class SettingConcept {
     setting: string;
   }): Promise<{ success: boolean } | { error: string }> {
     try {
-      await this.prisma.setting.delete({
+      await prisma.setting.delete({
         where: { setting: input.setting }
       });
 
@@ -132,21 +132,21 @@ export class SettingConcept {
 
   // Queries
   async _getBySetting(input: { setting: string }): Promise<Setting[]> {
-    const setting = await this.prisma.setting.findUnique({
+    const setting = await prisma.setting.findUnique({
       where: { setting: input.setting }
     });
     return setting ? [setting] : [];
   }
 
   async _getByOwner(input: { ownerEntity: string }): Promise<Setting[]> {
-    return await this.prisma.setting.findMany({
+    return await prisma.setting.findMany({
       where: { ownerEntity: input.ownerEntity },
       orderBy: { key: 'asc' }
     });
   }
 
   async _getByKey(input: { ownerEntity: string, key: string }): Promise<Setting[]> {
-    return await this.prisma.setting.findMany({
+    return await prisma.setting.findMany({
       where: { 
         ownerEntity: input.ownerEntity,
         key: input.key 
@@ -155,7 +155,7 @@ export class SettingConcept {
   }
 
   async _getByCategory(input: { ownerEntity: string, category: string }): Promise<Setting[]> {
-    return await this.prisma.setting.findMany({
+    return await prisma.setting.findMany({
       where: { 
         ownerEntity: input.ownerEntity,
         category: input.category 
@@ -165,7 +165,7 @@ export class SettingConcept {
   }
 
   async _getPublicSettings(input: { ownerEntity: string }): Promise<Setting[]> {
-    return await this.prisma.setting.findMany({
+    return await prisma.setting.findMany({
       where: { 
         ownerEntity: input.ownerEntity,
         isPublic: true 
@@ -175,14 +175,14 @@ export class SettingConcept {
   }
 
   async _getByOwnerType(input: { ownerType: string }): Promise<Setting[]> {
-    return await this.prisma.setting.findMany({
+    return await prisma.setting.findMany({
       where: { ownerType: input.ownerType },
       orderBy: { ownerEntity: 'asc' }
     });
   }
 
   async _getValue(input: { ownerEntity: string, key: string, category?: string }): Promise<any[]> {
-    const setting = await this.prisma.setting.findFirst({
+    const setting = await prisma.setting.findFirst({
       where: {
         ownerEntity: input.ownerEntity,
         key: input.key,
@@ -193,7 +193,7 @@ export class SettingConcept {
   }
 
   async _getAllSettings(): Promise<Setting[]> {
-    return await this.prisma.setting.findMany({
+    return await prisma.setting.findMany({
       orderBy: [
         { ownerEntity: 'asc' },
         { key: 'asc' }

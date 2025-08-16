@@ -155,13 +155,13 @@ When implementing concepts that will be used in synchronizations, follow these c
 ```typescript
 // ✅ CORRECT: Returns array of objects with named properties
 async _getTopLevel(input: {}): Promise<Array<{ organizations: Organization[] }>> {
-    const orgs = await this.prisma.organization.findMany();
+    const orgs = await prisma.organization.findMany();
     return [{ organizations: orgs }];  // Wrapped in object with named property
 }
 
 // ❌ BROKEN: Returns raw array
 async _getTopLevel(input: {}): Promise<Organization[]> {
-    return await this.prisma.organization.findMany();  // Raw array won't bind correctly
+    return await prisma.organization.findMany();  // Raw array won't bind correctly
 }
 ```
 
@@ -173,7 +173,7 @@ Design action returns to work well with the two-sync pattern:
 // ✅ CORRECT: Return data in named property
 async create(input: { name: string }): Promise<{ user: User } | { error: string }> {
     try {
-        const user = await this.prisma.user.create({ data: input });
+        const user = await prisma.user.create({ data: input });
         return { user };  // Named property for symbol binding
     } catch (error) {
         return { error: "Failed to create user" };
@@ -188,14 +188,14 @@ Design query functions specifically for use in synchronizations:
 ```typescript
 // Action form (returns single result)
 async listUsers(input: {}): Promise<{ users: User[] } | { error: string }> {
-    const users = await this.prisma.user.findMany();
+    const users = await prisma.user.findMany();
     return { users };
 }
 
 // Query form for frames.query (returns array of objects)
 async _getUsersForPayload(input: {}): Promise<Array<{ users: User[] }>> {
     try {
-        const users = await this.prisma.user.findMany();
+        const users = await prisma.user.findMany();
         return [{ users }];  // Array with single object containing named property
     } catch {
         return [{ users: [] }];  // Empty array on error
@@ -204,7 +204,7 @@ async _getUsersForPayload(input: {}): Promise<Array<{ users: User[] }>> {
 
 // Individual query form (returns array of individual items)
 async _getAllUsers(input: {}): Promise<Array<{ user: User }>> {
-    const users = await this.prisma.user.findMany();
+    const users = await prisma.user.findMany();
     return users.map(user => ({ user }));  // Each user wrapped in object
 }
 ```

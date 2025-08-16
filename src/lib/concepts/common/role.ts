@@ -1,13 +1,7 @@
-import { PrismaClient, Role } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { Role } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
 export class RoleConcept {
-  private prisma: PrismaClient;
-
-  constructor() {
-    this.prisma = prisma;
-  }
 
   async create(input: {
     displayName: string;
@@ -16,7 +10,7 @@ export class RoleConcept {
     permissions: object;
   }): Promise<{ role: Role } | { error: string }> {
     try {
-      const role = await this.prisma.role.create({
+      const role = await prisma.role.create({
         data: {
           displayName: input.displayName,
           description: input.description,
@@ -41,7 +35,7 @@ export class RoleConcept {
   }): Promise<{ role: Role } | { error: string }> {
     try {
       // Find role by name
-      const role = await this.prisma.role.findFirst({
+      const role = await prisma.role.findFirst({
         where: { id: input.id }
       });
 
@@ -58,7 +52,7 @@ export class RoleConcept {
       if (input.description !== undefined) updateData.description = input.description;
       if (input.permissions !== undefined) updateData.permissions = input.permissions;
 
-      const updatedRole = await this.prisma.role.update({
+      const updatedRole = await prisma.role.update({
         where: { id: role.id },
         data: updateData
       });
@@ -71,7 +65,7 @@ export class RoleConcept {
 
   async activate(input: { id: string }): Promise<{ role: Role } | { error: string }> {
     try {
-      const role = await this.prisma.role.findFirst({
+      const role = await prisma.role.findFirst({
         where: { id: input.id }
       });
 
@@ -79,7 +73,7 @@ export class RoleConcept {
         return { error: "Role not found" };
       }
 
-      const updatedRole = await this.prisma.role.update({
+      const updatedRole = await prisma.role.update({
         where: { id: role.id },
         data: { isActive: true }
       });
@@ -92,7 +86,7 @@ export class RoleConcept {
 
   async deactivate(input: { id: string }): Promise<{ role: Role } | { error: string }> {
     try {
-      const role = await this.prisma.role.findFirst({
+      const role = await prisma.role.findFirst({
         where: { id: input.id }
       });
 
@@ -104,7 +98,7 @@ export class RoleConcept {
         return { error: "Cannot deactivate built-in role" };
       }
 
-      const updatedRole = await this.prisma.role.update({
+      const updatedRole = await prisma.role.update({
         where: { id: role.id },
         data: { isActive: false }
       });
@@ -117,7 +111,7 @@ export class RoleConcept {
 
   async delete(input: { id: string }): Promise<{ success: boolean } | { error: string }> {
     try {
-      const role = await this.prisma.role.findFirst({
+      const role = await prisma.role.findFirst({
         where: { id: input.id }
       });
 
@@ -129,7 +123,7 @@ export class RoleConcept {
         return { error: "Cannot delete built-in role" };
       }
 
-      await this.prisma.role.delete({
+      await prisma.role.delete({
         where: { id: role.id }
       });
 
@@ -142,7 +136,7 @@ export class RoleConcept {
   // Queries
   async _getById(input: { id: string }): Promise<Role | null> {
     try {
-      const role = await this.prisma.role.findFirst({
+      const role = await prisma.role.findFirst({
         where: { id: input.id }
       });
       return role;
@@ -153,7 +147,7 @@ export class RoleConcept {
   
   async _getByDisplayName(input: { displayName: string }): Promise<Role | null> {
     try {
-      const role = await this.prisma.role.findFirst({
+      const role = await prisma.role.findFirst({
         where: { displayName: input.displayName }
       });
       return role;
@@ -164,7 +158,7 @@ export class RoleConcept {
 
   async _getByScope(input: { scope: string }): Promise<Role[]> {
     try {
-      const roles = await this.prisma.role.findMany({
+      const roles = await prisma.role.findMany({
         where: { scope: input.scope }
       });
       return roles;
@@ -175,7 +169,7 @@ export class RoleConcept {
 
   async _getActive(): Promise<Role[]> {
     try {
-      const roles = await this.prisma.role.findMany({
+      const roles = await prisma.role.findMany({
         where: { isActive: true }
       });
       return roles;
@@ -186,7 +180,7 @@ export class RoleConcept {
 
   async _getBuiltIn(): Promise<Role[]> {
     try {
-      const roles = await this.prisma.role.findMany({
+      const roles = await prisma.role.findMany({
         where: { isBuiltIn: true }
       });
       return roles;
@@ -197,7 +191,7 @@ export class RoleConcept {
 
   async _hasPermission(input: { id: string; resource: string; action: string }): Promise<boolean[]> {
     try {
-      const role = await this.prisma.role.findFirst({
+      const role = await prisma.role.findFirst({
         where: { id: input.id }
       });
 

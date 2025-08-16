@@ -1,18 +1,12 @@
-import { PrismaClient, Organization } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { Organization } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
 export class OrganizationConcept {
-  private prisma: PrismaClient;
-
-  constructor() {
-    this.prisma = prisma;
-  }
 
   // List top-level organizations (action form for sync engine)
   async listTopLevel(input: {} = {}): Promise<{ organizations: Organization[] } | { error: string }> {
     try {
-      const orgs = await this.prisma.organization.findMany({
+      const orgs = await prisma.organization.findMany({
         where: { isActive: true } // Get all active organizations
       });
       
@@ -27,7 +21,7 @@ export class OrganizationConcept {
   // Get organization by id (action form for API syncs)
   async getById(input: { id: string }): Promise<{ organization: Organization | null } | { error: string }> {
     try {
-      const org = await this.prisma.organization.findUnique({ where: { id: input.id } });
+      const org = await prisma.organization.findUnique({ where: { id: input.id } });
       return { organization: org };
     } catch (error) {
       return { error: `Failed to get organization: ${error}` };
@@ -51,7 +45,7 @@ export class OrganizationConcept {
 
       // Validate managing organization exists if provided
       if (input.managingOrganizationId) {
-        const managingOrg = await this.prisma.organization.findUnique({
+        const managingOrg = await prisma.organization.findUnique({
           where: { id: input.managingOrganizationId }
         });
         if (!managingOrg) {
@@ -60,14 +54,14 @@ export class OrganizationConcept {
       }
 
       // Check domain uniqueness
-      const existingOrg = await this.prisma.organization.findFirst({
+      const existingOrg = await prisma.organization.findFirst({
         where: { domain: input.domain }
       });
       if (existingOrg) {
         return { error: "Organization with this domain already exists" };
       }
 
-      const organization = await this.prisma.organization.create({
+      const organization = await prisma.organization.create({
         data: {
           name: input.name,
           description: input.description,
@@ -99,7 +93,7 @@ export class OrganizationConcept {
       if (input.contactEmail !== undefined) updateData.contactEmail = input.contactEmail;
       if (input.website !== undefined) updateData.website = input.website;
 
-      const organization = await this.prisma.organization.update({
+      const organization = await prisma.organization.update({
         where: { id: input.id },
         data: updateData
       });
@@ -114,7 +108,7 @@ export class OrganizationConcept {
     try {
       // Note: Simplified - no hierarchy check in current schema
 
-      await this.prisma.organization.delete({
+      await prisma.organization.delete({
         where: { id: input.id }
       });
 
@@ -126,7 +120,7 @@ export class OrganizationConcept {
 
   async _getById(input: { id: string }): Promise<Organization[]> {
     try {
-      const org = await this.prisma.organization.findUnique({
+      const org = await prisma.organization.findUnique({
         where: { id: input.id }
       });
       if (org) {
@@ -140,7 +134,7 @@ export class OrganizationConcept {
 
   async _getByDomain(input: { domain: string }): Promise<Organization[]> {
     try {
-      const org = await this.prisma.organization.findFirst({
+      const org = await prisma.organization.findFirst({
         where: { domain: input.domain }
       });
       if (org) {
@@ -154,7 +148,7 @@ export class OrganizationConcept {
 
   async _getChildren(input: { managingOrganizationId: string }): Promise<Organization[]> {
     try {
-      const orgs = await this.prisma.organization.findMany({
+      const orgs = await prisma.organization.findMany({
         where: { organizationType: "education" } // Simplified - no hierarchy
       });
       return orgs;
@@ -165,7 +159,7 @@ export class OrganizationConcept {
 
   async _getTopLevel(): Promise<Organization[]> {
     try {
-      const orgs = await this.prisma.organization.findMany({
+      const orgs = await prisma.organization.findMany({
         where: { isActive: true } // Get all active organizations
       });
       return orgs;
@@ -176,7 +170,7 @@ export class OrganizationConcept {
 
   async _getAllByType(input: { type: string }): Promise<Organization[]> {
     try {
-      const orgs = await this.prisma.organization.findMany({
+      const orgs = await prisma.organization.findMany({
         where: { organizationType: input.type }
       });
       return orgs;

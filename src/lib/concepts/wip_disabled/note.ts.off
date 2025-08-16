@@ -4,7 +4,7 @@ export class NoteConcept {
   private prisma: PrismaClient;
 
   constructor() {
-    this.prisma = new PrismaClient();
+    prisma = new PrismaClient();
   }
 
   async addNote(input: {
@@ -14,7 +14,7 @@ export class NoteConcept {
     noteType: string;
   }): Promise<{ note: Note } | { error: string }> {
     try {
-      const note = await this.prisma.note.create({
+      const note = await prisma.note.create({
         data: {
           // assignment: input.assignment, // TODO: Use Relationship concept to link notes to assignments
           note: input.note,
@@ -30,7 +30,7 @@ export class NoteConcept {
 
   async deleteNote(input: { id: string }): Promise<{ success: boolean } | { error: string }> {
     try {
-      await this.prisma.note.delete({ where: { id: input.id } });
+      await prisma.note.delete({ where: { id: input.id } });
       return { success: true };
     } catch (error) {
       return { error: `Failed to delete note: ${error}` };
@@ -40,21 +40,21 @@ export class NoteConcept {
   async _getByAssignment(input: { assignment: string }): Promise<Note[]> {
     // TODO: Use Relationship concept to find notes linked to assignments
     return [];
-    // return await this.prisma.note.findMany({
+    // return await prisma.note.findMany({
     //   where: { assignment: input.assignment },
     //   orderBy: { createdAt: "desc" },
     // });
   }
 
   async _getByAuthor(input: { author: string }): Promise<Note[]> {
-    return await this.prisma.note.findMany({
+    return await prisma.note.findMany({
       where: { author: input.author },
       orderBy: { createdAt: "desc" },
     });
   }
 
   async _getByType(input: { noteType: string }): Promise<Note[]> {
-    return await this.prisma.note.findMany({
+    return await prisma.note.findMany({
       where: { noteType: input.noteType },
       orderBy: { createdAt: "desc" },
     });

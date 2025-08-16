@@ -1,11 +1,7 @@
-import { PrismaClient, Relationship } from "@prisma/client";
+import { Relationship } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
 export class RelationshipConcept {
-  private prisma: PrismaClient;
-
-  constructor() {
-    this.prisma = new PrismaClient();
-  }
 
   // Build an index description for arbitrary from/to. No side-effects.
   async index(input: {
@@ -31,7 +27,7 @@ export class RelationshipConcept {
   }): Promise<{ relationship: Relationship } | { error: string }> {
     try {
       // Check if relationship already exists
-      const existing = await this.prisma.relationship.findFirst({
+      const existing = await prisma.relationship.findFirst({
         where: {
           fromEntityType: input.fromEntityType,
           fromEntityId: input.fromEntityId,
@@ -44,13 +40,13 @@ export class RelationshipConcept {
       let relationship;
       if (existing) {
         // Update existing relationship
-        relationship = await this.prisma.relationship.update({
+        relationship = await prisma.relationship.update({
           where: { id: existing.id },
           data: { metadata: input.metadata || {} },
         });
       } else {
         // Create new relationship
-        relationship = await this.prisma.relationship.create({
+        relationship = await prisma.relationship.create({
           data: {
             fromEntityType: input.fromEntityType,
             fromEntityId: input.fromEntityId,
@@ -75,7 +71,7 @@ export class RelationshipConcept {
     relationType: string;
   }): Promise<{ success: boolean } | { error: string }> {
     try {
-      const existing = await this.prisma.relationship.findFirst({
+      const existing = await prisma.relationship.findFirst({
         where: {
           fromEntityType: input.fromEntityType,
           fromEntityId: input.fromEntityId,
@@ -86,7 +82,7 @@ export class RelationshipConcept {
       });
 
       if (existing) {
-        await this.prisma.relationship.delete({
+        await prisma.relationship.delete({
           where: { id: existing.id },
         });
       }
@@ -105,7 +101,7 @@ export class RelationshipConcept {
     metadata?: any;
   }): Promise<{ relationship: Relationship } | { error: string }> {
     try {
-      const existing = await this.prisma.relationship.findFirst({
+      const existing = await prisma.relationship.findFirst({
         where: {
           fromEntityType: input.fromEntityType,
           fromEntityId: input.fromEntityId,
@@ -119,7 +115,7 @@ export class RelationshipConcept {
         return { error: 'Relationship not found' };
       }
 
-      const relationship = await this.prisma.relationship.update({
+      const relationship = await prisma.relationship.update({
         where: { id: existing.id },
         data: { metadata: input.metadata || {} },
       });
@@ -131,7 +127,7 @@ export class RelationshipConcept {
 
   // Queries
   async _getByFrom(input: { fromEntityType: string; fromEntityId: string; relationType?: string }): Promise<Relationship[]> {
-    return await this.prisma.relationship.findMany({
+    return await prisma.relationship.findMany({
       where: {
         fromEntityType: input.fromEntityType,
         fromEntityId: input.fromEntityId,
@@ -142,7 +138,7 @@ export class RelationshipConcept {
   }
 
   async _getByTo(input: { toEntityType: string; toEntityId: string; relationType?: string }): Promise<Relationship[]> {
-    return await this.prisma.relationship.findMany({
+    return await prisma.relationship.findMany({
       where: {
         toEntityType: input.toEntityType,
         toEntityId: input.toEntityId,
@@ -153,7 +149,7 @@ export class RelationshipConcept {
   }
 
   async _getBetween(input: { entityAType: string; entityAId: string; entityBType: string; entityBId: string }): Promise<Relationship[]> {
-    return await this.prisma.relationship.findMany({
+    return await prisma.relationship.findMany({
       where: {
         OR: [
           { fromEntityType: input.entityAType, fromEntityId: input.entityAId, toEntityType: input.entityBType, toEntityId: input.entityBId },
@@ -165,7 +161,7 @@ export class RelationshipConcept {
   }
 
   async _getChildren(input: { parentEntityType: string; parentEntityId: string }): Promise<Relationship[]> {
-    return await this.prisma.relationship.findMany({
+    return await prisma.relationship.findMany({
       where: { fromEntityType: input.parentEntityType, fromEntityId: input.parentEntityId, relationType: 'child' },
       orderBy: { updatedAt: "desc" },
     });
