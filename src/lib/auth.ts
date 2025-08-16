@@ -3,6 +3,33 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { emailOTP } from "better-auth/plugins";
 import { prisma } from "@/lib/prisma";
 
+// Helper function to ensure default organization exists for a domain
+async function ensureDefaultOrganization(Organization: any, domain: string) {
+  // Try to find existing organization by domain
+  const existingOrgs = await Organization._getByDomain({ domain });
+  if (existingOrgs && existingOrgs.length > 0) {
+    return existingOrgs[0];
+  }
+
+  // Create default organization for the domain
+  const orgName = domain.split('.')[0]; // e.g., "company" from "company.com"
+  const result = await Organization.create({
+    name: `${orgName.charAt(0).toUpperCase() + orgName.slice(1)} Organization`,
+    description: `Default organization for ${domain}`,
+    domain: domain,
+    type: "education",
+    contactEmail: `admin@${domain}`,
+  });
+
+  if ('error' in result) {
+    console.error(`Failed to create organization for domain ${domain}:`, result.error);
+    return null;
+  }
+
+  console.log(`Created default organization for domain: ${domain}`);
+  return result.organization;
+}
+
 
 export const auth = betterAuth({
   // Database adapter
@@ -67,9 +94,16 @@ export const auth = betterAuth({
         // Async: imports concept facade and performs DB-backed operations
         // through concept actions behind the scenes.
         const email = user.email;
-        const autoRegisterDomain = process.env.AUTO_REGISTER_DOMAIN;
-        // if the email does not end with AUTO_REGISTER_DOMAIN, then we don't auto-register
-        if (autoRegisterDomain && !email.endsWith(`@${autoRegisterDomain}`)) {
+        const autoRegisterDomains = (process.env.AUTO_REGISTER_DOMAINS || process.env.AUTO_REGISTER_DOMAIN || "")
+          .split(",")
+          .map(d => d.trim())
+          .filter(d => d.length > 0);
+        
+        // Check if email domain matches any auto-register domains
+        const userDomain = email.split('@')[1];
+        const matchingDomain = autoRegisterDomains.find(domain => userDomain === domain);
+        
+        if (!matchingDomain) {
           return user;
         }
         // Determine the role based on email
@@ -83,10 +117,10 @@ export const auth = betterAuth({
         try {
           const { User, Role, Membership, Organization } = await import("@/lib/server");
 
-          // Ensure default organization exists (use valid org type)
-          const org = await Organization._getByDomain({ domain: autoRegisterDomain } as any);
-          let platformOrg = org[0];
+          // Ensure default organization exists for the matching domain
+          let platformOrg = await ensureDefaultOrganization(Organization, matchingDomain);
           if (!platformOrg) {
+            console.error(`Failed to create/find organization for domain: ${matchingDomain}`);
             return user;
           }
           const roleEntity = await Role._getByDisplayName({ displayName: role });
@@ -116,7 +150,7 @@ export const auth = betterAuth({
             memberEntityType: 'user',
             memberEntityId: user.id,
             targetEntityType: 'organization',
-            targetEntityId: (platformOrg as any).organization || (platformOrg as any).id,
+            targetEntityId: platformOrg.id,
             roleEntityId: roleEntity.id,
             invitedBy: 'system'
           });
@@ -130,12 +164,12 @@ export const auth = betterAuth({
               memberEntityType: 'user',
               memberEntityId: user.id,
               targetEntityType: 'organization',
-              targetEntityId: (platformOrg as any).organization || (platformOrg as any).id,
+              targetEntityId: platformOrg.id,
               approvedBy: 'system',
             });
           }
                   
-          console.log(`Auto-registered user ${email} with role ${role}`);
+          console.log(`Auto-registered user ${email} with role ${role} in organization ${platformOrg.name} (${matchingDomain})`);
         } catch (error) {
           console.error('Error in auto-registration:', error);
           // Don't fail the auth process, just log the error
