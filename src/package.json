@@ -14,7 +14,7 @@
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",
     "test": "jest",
-    "test:watch": "jest --watch", 
+    "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:projects": "npx tsx scripts/test-project-extraction.ts",
     "test:projects:core": "npx tsx scripts/test-project-extraction.ts core",
@@ -31,12 +31,11 @@
     "test:syncs": "jest tests/syncs/",
     "test:integration": "jest tests/integration/",
     "install:system": "npx tsx scripts/install.ts",
-    "seed": "npx tsx scripts/seed.ts", 
+    "seed": "npx tsx scripts/seed.ts",
     "import:projects": "node scripts/import-projects.js"
   },
   "dependencies": {
     "@prisma/client": "^6.14.0",
-    "@sonnenreich/concept-design-engine": "^1.0.0",
     "@tailwindcss/postcss": "^4.1.11",
     "@types/nodemailer": "^6.4.17",
     "better-auth": "^1.3.4",
