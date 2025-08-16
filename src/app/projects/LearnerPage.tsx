@@ -32,7 +32,7 @@ const getProjectImage = (industry: string, domain: string) => {
 
 // Function to get difficulty color
 const getDifficultyColor = (difficulty: string) => {
-  switch (difficulty.toLowerCase()) {
+  switch (difficulty?.toLowerCase()) {
     case 'beginner': return 'bg-green-500';
     case 'intermediate': return 'bg-yellow-500';
     case 'advanced': return 'bg-red-500';
