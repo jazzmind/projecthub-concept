@@ -293,11 +293,23 @@ export default function HomePage() {
     }));
 
     return (
-      <section id="educators" className="py-24 bg-gray-50 dark:bg-gray-800">
-        <div className="max-w-7xl mx-auto px-6">
+      <section id="educators" className="relative py-24 bg-gradient-to-br from-green-600 via-green-700 to-emerald-800 overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <svg className="w-full h-full" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="educator-grid" width="10" height="10" patternUnits="userSpaceOnUse">
+                <path d="M 10 0 L 0 0 0 10" fill="none" stroke="white" strokeWidth="0.5"/>
+              </pattern>
+            </defs>
+            <rect width="100" height="100" fill="url(#educator-grid)" />
+          </svg>
+        </div>
+        
+        <div className="relative max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">For Educators</h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">For Educators</h2>
+            <p className="text-xl text-green-100 max-w-3xl mx-auto leading-relaxed">
           Get real industry projects for your students that are aligned to your learning outcomes and needs.
         </p>
           </div>
@@ -306,13 +318,13 @@ export default function HomePage() {
             {enhancedCompanies.map((company, index) => (
               <div 
                 key={company.name} 
-                className="group bg-white dark:bg-gray-900 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-200 dark:border-gray-700"
+                className="group bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl shadow-lg hover:shadow-2xl hover:bg-white/20 transition-all duration-300 overflow-hidden"
               >
                 {/* Header with logo and stats */}
-                <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 p-6 border-b border-gray-200 dark:border-gray-600">
+                <div className="bg-white/20 backdrop-blur-sm p-6 border-b border-white/30">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
-                      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                      <div className="bg-white/90 backdrop-blur-sm p-3 rounded-lg shadow-sm">
                         <img 
                           src={company.logo} 
                           alt={`${company.name} logo`}
@@ -320,13 +332,13 @@ export default function HomePage() {
                         />
                       </div>
                       <div>
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">{company.name}</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{company.sector}</p>
+                        <h3 className="text-xl font-bold text-white">{company.name}</h3>
+                        <p className="text-sm text-green-100">{company.sector}</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-3xl font-bold text-green-600 dark:text-green-400">{company.projects}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Projects</div>
+                      <div className="text-3xl font-bold text-white">{company.projects}</div>
+                      <div className="text-xs text-green-100 uppercase tracking-wide">Projects</div>
                     </div>
                   </div>
                 </div>
@@ -346,22 +358,22 @@ export default function HomePage() {
                   </div>
 
                   {/* Contact Person */}
-                  <div className="flex items-center space-x-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <div className="flex items-center space-x-4 p-4 bg-white/20 backdrop-blur-sm rounded-xl">
                     <img 
                       src={company.contactPerson.photo} 
                       alt={company.contactPerson.name}
-                      className="w-12 h-12 rounded-full object-cover ring-2 ring-green-200 dark:ring-green-700"
+                      className="w-12 h-12 rounded-full object-cover ring-2 ring-white/50"
                     />
                     <div>
-                      <div className="font-semibold text-gray-900 dark:text-white text-sm">
+                      <div className="font-semibold text-white text-sm">
                         {company.contactPerson.name}
                       </div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                      <div className="text-xs text-green-100">
                         {company.contactPerson.title}
                       </div>
                     </div>
                     <div className="ml-auto">
-                      <button className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 transition-colors">
+                      <button className="text-white hover:text-green-100 transition-colors">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
@@ -371,7 +383,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Hover effect overlay */}
-                <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
               </div>
             ))}
           </div>
@@ -394,11 +406,23 @@ export default function HomePage() {
 
   // For Students Section  
   const StudentsSection = () => (
-    <section id="students" className="py-24 bg-white dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto px-6">
+    <section id="students" className="relative py-24 bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-10">
+        <svg className="w-full h-full" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="student-grid" width="10" height="10" patternUnits="userSpaceOnUse">
+              <path d="M 10 0 L 0 0 0 10" fill="none" stroke="white" strokeWidth="0.5"/>
+            </pattern>
+          </defs>
+          <rect width="100" height="100" fill="url(#student-grid)" />
+        </svg>
+      </div>
+      
+      <div className="relative max-w-7xl mx-auto px-6">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">For Students</h2>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">For Students</h2>
+          <p className="text-xl text-purple-100 max-w-3xl mx-auto leading-relaxed">
             Get real world work experience. Get access through your university or join one of our open enrollment programs.
           </p>
         </div>
@@ -413,7 +437,7 @@ export default function HomePage() {
             {demoProjects.slice(0, 8).map((project) => (
               <div 
                 key={project.title} 
-                className="group bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer border border-gray-200 dark:border-gray-700 overflow-hidden h-96 flex flex-col mx-2"
+                className="group bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl shadow-lg hover:shadow-2xl hover:bg-white/20 transition-all duration-300 cursor-pointer overflow-hidden h-96 flex flex-col mx-2"
                 onClick={() => handleProjectClick(project)}
               >
                 <div className="relative h-48 overflow-hidden">
@@ -440,16 +464,16 @@ export default function HomePage() {
                 </div>
                 
                 <div className="p-6 flex flex-col flex-1">
-                  <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                  <h3 className="font-bold text-lg text-white mb-2 line-clamp-2 group-hover:text-purple-200 transition-colors">
                     {project.title}
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 flex-1 line-clamp-3">
+                  <p className="text-sm text-purple-100 mb-4 flex-1 line-clamp-3">
                     {project.summary}
                   </p>
                   
                   <div className="mt-auto space-y-3">
                     {/* Project metadata */}
-                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center justify-between text-xs text-purple-200">
                       <span className="font-medium">Technology</span>
                       <span className="font-medium">20h</span>
                     </div>
@@ -459,7 +483,7 @@ export default function HomePage() {
                       {project.tags.slice(0, 3).map((tag) => (
                         <span 
                           key={tag} 
-                          className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 group-hover:bg-purple-100 group-hover:text-purple-700 dark:group-hover:bg-purple-900 dark:group-hover:text-purple-300 transition-colors"
+                          className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-white/20 text-white backdrop-blur-sm group-hover:bg-purple-200/30 group-hover:text-purple-100 transition-colors"
                         >
                           {tag}
                         </span>
@@ -470,7 +494,7 @@ export default function HomePage() {
                 
                 {/* Hover effect indicator */}
                 <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                  <div className="bg-purple-600 text-white p-2 rounded-full shadow-lg">
+                  <div className="bg-white/20 backdrop-blur-sm text-white p-2 rounded-full shadow-lg">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />

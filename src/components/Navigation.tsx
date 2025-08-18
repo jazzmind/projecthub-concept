@@ -31,7 +31,7 @@ export default function Navigation() {
         <div className="max-w-full mx-auto px-6">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <a href='/'>
+              <a href='/' className="flex items-center space-x-2 whitespace-nowrap">
                 <Image src="/logo.png" alt="ProjectHub" width={32} height={32} />
                 <h1 className="text-xl font-semibold text-gray-900 dark:text-white">ProjectHub</h1>
               </a>
@@ -48,17 +48,17 @@ export default function Navigation() {
       <header className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm shadow-sm border-b border-gray-200/20 dark:border-gray-700/20 sticky top-0 z-50">
         <div className="max-w-full mx-auto px-6">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-10">
+            <div className="flex items-center space-x-10 flex-1">
               <div className="flex items-center space-x-4">
-              <a href='/'>
+              <a href='/' className="flex items-center space-x-2 whitespace-nowrap">
                 <Image src="/logo.png" alt="ProjectHub" width={32} height={32} />
                 <h1 className="text-xl font-semibold text-gray-900 dark:text-white">ProjectHub</h1>
               </a>
                   </div>
-              <nav className="hidden md:flex space-x-8">
-                <a href="/#companies" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white text-sm font-medium transition-colors">For Companies</a>
-                <a href="/#educators" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white text-sm font-medium transition-colors">For Educators</a>
-                <a href="/#students" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white text-sm font-medium transition-colors">For Students</a>
+              <nav className="hidden md:flex space-x-8 mx-auto">
+                <a href="/#companies" className="nav-item px-4 py-2 text-gray-700 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 text-sm font-semibold transition-colors rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20">For Companies</a>
+                <a href="/#educators" className="nav-item px-4 py-2 text-gray-700 hover:text-green-600 dark:text-gray-300 dark:hover:text-green-400 text-sm font-semibold transition-colors rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20">For Educators</a>
+                <a href="/#students" className="nav-item px-4 py-2 text-gray-700 hover:text-purple-600 dark:text-gray-300 dark:hover:text-purple-400 text-sm font-semibold transition-colors rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20">For Students</a>
               </nav>
             </div>
             <a href="/login" className="inline-flex items-center px-6 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 font-medium text-sm transition-all">
@@ -151,7 +151,7 @@ export default function Navigation() {
                     </button>
                   </>
                 ) : (
-                  <a href='/'>
+                  <a href='/' className="flex items-center space-x-2 whitespace-nowrap">
                   <h1 className="text-lg font-semibold text-gray-900 dark:text-white">ProjectHub</h1>
                   </a>
                 )}
