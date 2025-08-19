@@ -32,11 +32,11 @@ export default function ApplicationsPage() {
 
   // Platform/Org admins and educators see manager view
   const isManager = hasRole(ROLES.PLATFORM_ADMIN) || 
-                   hasRole(ROLES.ORG_ADMIN) || 
+                   hasRole(ROLES.MANAGER) || 
                    hasRole(ROLES.EDUCATOR);
 
   // Industry partners and experts see provider view  
-  const isProvider = hasRole(ROLES.INDUSTRY_PARTNER) || 
+  const isProvider = hasRole(ROLES.PROVIDER) || 
                     hasRole(ROLES.EXPERT);
 
   if (isManager) {

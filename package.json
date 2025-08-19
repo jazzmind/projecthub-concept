@@ -10,7 +10,8 @@
     "api": "npm --prefix ./src run api",
     "build": "npm --prefix ./src run build",
     "test": "npm --prefix ./src run test"
+  },
+  "dependencies": {
+    "@vercel/blob": "^1.1.1"
   }
 }
-
-

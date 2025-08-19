@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import LearnerPage from './LearnerPage';
 import ManagerPage from './ManagerPage';
+import ProviderPage from '../applications/ProviderPage';
 
 export default function ProjectsPage() {
   const { user, isLoading, hasRole } = useAuth();
@@ -30,15 +31,14 @@ export default function ProjectsPage() {
   }
 
   // Check if user has management permissions
-  const isManager = hasRole(ROLES.PLATFORM_ADMIN) || 
-                   hasRole(ROLES.ORG_ADMIN) || 
-                   hasRole(ROLES.EDUCATOR) ||
-                   hasRole(ROLES.EXPERT) ||
-                   hasRole(ROLES.INDUSTRY_PARTNER);
-
-  if (isManager) {
+  
+  if (hasRole(ROLES.EDUCATOR) || hasRole(ROLES.MANAGER) || hasRole(ROLES.PLATFORM_ADMIN)) {
     return <ManagerPage />;
-  } else {
+  } else if (hasRole(ROLES.LEARNER)) {
     return <LearnerPage />;
+  } else if (hasRole(ROLES.PROVIDER) || hasRole(ROLES.EXPERT)) {
+    return <ProviderPage />;
+  } else {
+    return <div>No access</div>;
   }
 }

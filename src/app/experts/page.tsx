@@ -20,10 +20,10 @@ export default function ExpertsPage() {
     // If user is loaded and doesn't have manager permissions, redirect to home
     if (!isLoading && user) {
       const isManager = hasRole(ROLES.PLATFORM_ADMIN) || 
-                       hasRole(ROLES.ORG_ADMIN) || 
+                       hasRole(ROLES.MANAGER) || 
                        hasRole(ROLES.EDUCATOR) ||
                        hasRole(ROLES.EXPERT) ||
-                       hasRole(ROLES.INDUSTRY_PARTNER);
+                       hasRole(ROLES.PROVIDER);
       
       if (!isManager) {
         router.push('/');
@@ -45,10 +45,10 @@ export default function ExpertsPage() {
 
   // Only managers should see experts management
   const isManager = hasRole(ROLES.PLATFORM_ADMIN) || 
-                   hasRole(ROLES.ORG_ADMIN) || 
+                   hasRole(ROLES.MANAGER) || 
                    hasRole(ROLES.EDUCATOR) ||
                    hasRole(ROLES.EXPERT) ||
-                   hasRole(ROLES.INDUSTRY_PARTNER);
+                   hasRole(ROLES.PROVIDER);
 
   if (isManager) {
     return <ManagerPage />;

@@ -32,7 +32,8 @@
     "test:integration": "jest tests/integration/",
     "install:system": "npx tsx scripts/install.ts",
     "seed": "npx tsx scripts/seed.ts",
-    "import:projects": "node scripts/import-projects.js"
+    "import:projects": "node scripts/import-projects.js",
+    "extract:batch": "npx tsx scripts/batch-extract-documents.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.14.0",

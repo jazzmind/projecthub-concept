@@ -24,18 +24,6 @@ export class MembershipConcept {
     }
   }
 
-  // Convenience action to list members by target for API syncs
-  async listByTarget(input: { targetEntityType: string; targetEntityId?: string }): Promise<{ memberships: Membership[] } | { error: string }> {
-    try {
-      const memberships = await prisma.membership.findMany({
-        where: { targetEntityType: input.targetEntityType, targetEntityId: input.targetEntityId || undefined }
-      });
-      return { memberships };
-    } catch (error) {
-      return { error: `Failed to list memberships: ${error}` };
-    }
-  }
-
   async invite(input: {
     memberEntityType: string;
     memberEntityId: string;
@@ -362,10 +350,14 @@ export class MembershipConcept {
   }
 
   // Queries
-  async _getByMember(input: { memberEntityType: string; memberEntityId?: string }): Promise<Membership[]> {
+  async _getByMemberEntity(input: { memberEntityType: string; memberEntityId?: string, isActive?: boolean | undefined }): Promise<Membership[]> {
     try {
       const memberships = await prisma.membership.findMany({
-        where: { memberEntityType: input.memberEntityType, memberEntityId: input.memberEntityId || undefined }
+        where: { 
+          memberEntityType: input.memberEntityType, 
+          memberEntityId: input.memberEntityId || undefined,
+          isActive: input.isActive || undefined
+        }
       });
       return memberships;
     } catch {
@@ -373,10 +365,14 @@ export class MembershipConcept {
     }
   }
 
-  async _getByTarget(input: { targetEntityType: string; targetEntityId?: string }): Promise<Membership[]> {
+  async _getByTargetEntity(input: { targetEntityType: string; targetEntityId?: string, isActive?: boolean | undefined }): Promise<Membership[]> {
     try {
       const memberships = await prisma.membership.findMany({
-        where: { targetEntityType: input.targetEntityType, targetEntityId: input.targetEntityId || undefined }
+        where: { 
+          targetEntityType: input.targetEntityType, 
+          targetEntityId: input.targetEntityId || undefined,
+          isActive: input.isActive || undefined
+        }
       });
       return memberships;
     } catch {
@@ -384,11 +380,12 @@ export class MembershipConcept {
     }
   }
 
-  async _getByMemberAndTarget(input: {
+  async _getByMemberEntityAndTargetEntity(input: {
     memberEntityType: string;
     memberEntityId: string;
     targetEntityType: string;
     targetEntityId: string;
+    isActive?: boolean | undefined;
   }): Promise<Membership[]> {
     try {
       const membership = await prisma.membership.findFirst({
@@ -396,7 +393,8 @@ export class MembershipConcept {
           memberEntityType: input.memberEntityType,
           memberEntityId: input.memberEntityId,
           targetEntityType: input.targetEntityType,
-          targetEntityId: input.targetEntityId
+          targetEntityId: input.targetEntityId,
+          isActive: input.isActive || undefined
         }
       });
       return membership ? [membership] : [];
@@ -405,40 +403,10 @@ export class MembershipConcept {
     }
   }
 
-  async _getActiveByMember(input: { memberEntityType: string; memberEntityId?: string }): Promise<Membership[]> {
+  async _getByRole(input: { roleEntityId: string, isActive?: boolean | undefined }): Promise<Membership[]> {
     try {
       const memberships = await prisma.membership.findMany({
-        where: {
-          memberEntityType: input.memberEntityType,
-          memberEntityId: input.memberEntityId || undefined,
-          isActive: true
-        }
-      });
-      return memberships;
-    } catch {
-      return [];
-    }
-  }
-
-  async _getActiveByTarget(input: { targetEntityType: string; targetEntityId?   : string }): Promise<Membership[]> {
-    try {
-      const memberships = await prisma.membership.findMany({
-        where: {
-          targetEntityType: input.targetEntityType,
-          targetEntityId: input.targetEntityId || undefined,
-          isActive: true
-        }
-      });
-      return memberships;
-    } catch {
-      return [];
-    }
-  }
-
-  async _getByRole(input: { roleEntityId: string }): Promise<Membership[]> {
-    try {
-      const memberships = await prisma.membership.findMany({
-        where: { roleEntityId: input.roleEntityId }
+        where: { roleEntityId: input.roleEntityId, isActive: input.isActive || undefined }
       });
       return memberships;
     } catch {
@@ -472,7 +440,7 @@ export class MembershipConcept {
     }
   }
 
-  async _isActiveMember(input: {
+  async _isActive(input: {
     memberEntityType: string;
     memberEntityId: string;
     targetEntityType: string;

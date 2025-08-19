@@ -49,12 +49,7 @@ export interface AuthUser {
     scope: string;
     permissions: Record<string, any>;
   };
-  availableContexts: Array<{
-    type: 'organization' | 'campaign' | 'project' | 'team';
-    id: string;
-    name: string;
-    role: string;
-  }>;
+  availableOrganizations: Array<{ id: string; name: string; domain: string; type: string; role: string }>;
 }
 
 // Permission constants
@@ -99,11 +94,10 @@ export const PERMISSIONS = {
 // Role constants
 export const ROLES = {
   PLATFORM_ADMIN: 'platform_admin',
-  ORG_ADMIN: 'org_admin',
+  MANAGER: 'manager',
   EDUCATOR: 'educator',
   EXPERT: 'expert',
-  INDUSTRY_PARTNER: 'industry_partner',
-  TEAM_LEADER: 'team_leader',
+  PROVIDER: 'provider',
   LEARNER: 'learner',
   GUEST: 'guest'
 } as const;
@@ -118,9 +112,16 @@ interface AuthContextType {
     type: string;
     role: string;
   }>;
+  campaigns: Array<{
+    id: string;
+    name: string;
+    role: string;
+  }>;
   currentOrganization: any | null;
+  currentCampaign: any | null;
   viewAsRole: string | null;
   switchOrganization: (orgId: string) => Promise<void>;
+  switchCampaign: (campaignId: string) => Promise<void>;
   setViewAsRole: (role: string | null) => void;
   hasPermission: (resource: string, action: string) => boolean;
   hasRole: (role: string) => boolean;
@@ -141,30 +142,60 @@ export function AuthProvider({ children, initialUser = null }: { children: React
     type: string;
     role: string;
   }>>([]);
+  const [campaigns, setCampaigns] = useState<Array<{
+    id: string;
+    name: string;
+    role: string;
+  }>>([]);
   const [currentOrganization, setCurrentOrganization] = useState<any | null>(null);
+  const [currentCampaign, setCurrentCampaign] = useState<any | null>(null);
   const [viewAsRole, setViewAsRole] = useState<string | null>(null);
 
-  const fetchUser = async () => {
+  // Initialize viewAsRole from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedRole = localStorage.getItem('viewAsRole');
+      if (storedRole) {
+        setViewAsRole(storedRole);
+      }
+    }
+  }, []);
+
+  const fetchUser = async (preserveViewAsRole: boolean = false) => {
     try {
+      // Preserve current viewAsRole if requested
+      const currentViewAsRole = preserveViewAsRole ? viewAsRole : null;
+      
       // Use sync-based auth endpoints (goes through [...path]/route.ts)
-      const response = await fetch('/api/auth/current-user');
+      const response = await fetch('/api/auth/current-user', {
+        credentials: 'include',
+        cache: 'no-store'
+      });
       if (response.ok) {
         const userData: AuthUser = await response.json();
         setUser(userData);
-        
-        // Fetch user's organizations via sync endpoint
-        const orgsResponse = await fetch('/api/auth/organizations');
-        if (orgsResponse.ok) {
-          const orgsData = await orgsResponse.json();
-          setOrganizations(orgsData.organizations || []);
-          
-          // Set current organization based on user's current context
-          if (userData.currentContext.organizationId) {
-            const currentOrg = orgsData.organizations?.find(
-              (org: any) => org.id === userData.currentContext.organizationId
-            );
-            setCurrentOrganization(currentOrg || null);
+        setOrganizations(userData.availableOrganizations);
+        if (userData.currentContext.organizationId) {
+          setCurrentOrganization(userData.availableOrganizations.find((c: { id: string }) => c.id === userData.currentContext.organizationId) || null);
+        }
+
+        // Fetch user's campaigns
+        const campsResponse = await fetch('/api/auth/campaigns', {
+          credentials: 'include',
+          cache: 'no-store'
+        });
+        if (campsResponse.ok) {
+          const campsData = await campsResponse.json();
+          setCampaigns(campsData.campaigns || []);
+          if ((userData as any).currentContext?.campaignId) {
+            const curCamp = campsData.campaigns?.find((c: any) => c.id === (userData as any).currentContext.campaignId);
+            setCurrentCampaign(curCamp || null);
           }
+        }
+        
+        // Restore viewAsRole if it was preserved
+        if (preserveViewAsRole && currentViewAsRole) {
+          setViewAsRole(currentViewAsRole);
         }
       } else {
         setUser(null);
@@ -182,13 +213,11 @@ export function AuthProvider({ children, initialUser = null }: { children: React
   };
 
   useEffect(() => {
-    if (initialUser) {
-      setUser(initialUser);
-      setIsLoading(false);
-    } else {
-      fetchUser();
-    }
-  }, []);
+    // Always fetch to ensure we hydrate with the latest server-side currentContext and lists
+    // Use initialUser only as a quick placeholder while the real data loads
+    if (initialUser) setUser(initialUser);
+    fetchUser();
+  }, [initialUser]);
 
   const switchOrganization = async (orgId: string) => {
     if (!user) return;
@@ -197,6 +226,7 @@ export function AuthProvider({ children, initialUser = null }: { children: React
       const response = await fetch('/api/auth/switch-context', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Include cookies for session
         body: JSON.stringify({ contextId: orgId })
       });
 
@@ -217,11 +247,31 @@ export function AuthProvider({ children, initialUser = null }: { children: React
           };
         });
         
-        // Refresh to get updated permissions
-        await fetchUser();
+        // Refresh to get updated permissions (preserve current viewAsRole)
+        await fetchUser(true);
       }
     } catch (error) {
       console.error('Failed to switch organization:', error);
+    }
+  };
+
+  const switchCampaign = async (campaignId: string) => {
+    if (!user) return;
+    try {
+      const response = await fetch('/api/auth/switch-campaign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ campaignId })
+      });
+      if (response.ok) {
+        const camp = campaigns.find(c => c.id === campaignId);
+        setCurrentCampaign(camp || null);
+        setUser(prev => prev ? { ...prev, currentContext: { ...prev.currentContext, campaignId } } : prev);
+        await fetchUser(true);
+      }
+    } catch (error) {
+      console.error('Failed to switch campaign:', error);
     }
   };
 
@@ -249,9 +299,15 @@ export function AuthProvider({ children, initialUser = null }: { children: React
   const logout = async () => {
     try {
       // Use sync-based logout endpoint
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch('/api/auth/logout', { 
+        method: 'POST',
+        credentials: 'include' // Include cookies for session
+      });
       // Also logout from better-auth
-      await fetch('/api/auth/sign-out', { method: 'POST' });
+      await fetch('/api/auth/sign-out', { 
+        method: 'POST',
+        credentials: 'include' // Include cookies for session
+      });
       setUser(null);
       setOrganizations([]);
       setCurrentOrganization(null);
@@ -261,8 +317,8 @@ export function AuthProvider({ children, initialUser = null }: { children: React
     }
   };
 
-  const refresh = () => {
-    fetchUser();
+  const refresh = (preserveViewAsRole: boolean = false) => {
+    fetchUser(preserveViewAsRole);
   };
 
   return (
@@ -271,10 +327,22 @@ export function AuthProvider({ children, initialUser = null }: { children: React
         user,
         isLoading,
         organizations,
+        campaigns,
         currentOrganization,
+        currentCampaign,
         viewAsRole,
         switchOrganization,
-        setViewAsRole,
+        switchCampaign,
+        setViewAsRole: (role: string | null) => {
+          setViewAsRole(role);
+          if (typeof window !== 'undefined') {
+            if (role) {
+              localStorage.setItem('viewAsRole', role);
+            } else {
+              localStorage.removeItem('viewAsRole');
+            }
+          }
+        },
         hasPermission,
         hasRole,
         hasAnyRole,
@@ -298,7 +366,7 @@ export function useAuth() {
 // Enhanced helper hooks
 export function useIsAdmin() {
   const { hasAnyRole } = useAuth();
-  return hasAnyRole([ROLES.PLATFORM_ADMIN, ROLES.ORG_ADMIN]);
+  return hasAnyRole([ROLES.PLATFORM_ADMIN, ROLES.MANAGER]);
 }
 
 export function useIsPlatformAdmin() {
@@ -308,7 +376,7 @@ export function useIsPlatformAdmin() {
 
 export function useIsOrgAdmin() {
   const { hasRole } = useAuth();
-  return hasRole(ROLES.ORG_ADMIN);
+  return hasRole(ROLES.MANAGER);
 }
 
 export function useCurrentOrganization() {

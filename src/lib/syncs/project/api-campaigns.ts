@@ -104,14 +104,14 @@ export function makeApiCampaignSyncs(
       }, { request }],
     ),
     then: actions(
-      [Campaign.listAll as any, {}],
+      [Campaign._getActive as any, {}],
     ),
   });
 
   const ListCampaignsResponse = ({ request, requestId, status, body, campaigns, payload }: Vars) => ({
     when: actions(
       [API.request as any, { method: "GET", path: "/api/campaigns" }, { request }],
-      [Campaign.listAll as any, {}, { campaigns }],
+      [Campaign._getActive as any, {}, { campaigns }],
     ),
     where: (frames: Frames) => {
       const result = new Frames();

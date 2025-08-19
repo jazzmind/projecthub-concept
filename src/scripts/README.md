@@ -44,6 +44,10 @@ npx tsx scripts/seed.ts
 
 Imports project briefs from JSON files into the ProjectHub database.
 
+### 4. Batch Document Extraction Script (`batch-extract-documents.ts`)
+
+Processes documents in a directory using AI extraction to create projects. Supports batch processing with progress tracking and confirmation.
+
 #### Usage
 
 **Option 1: Default Path**
@@ -109,6 +113,89 @@ All imported projects are set to "active" status by default. You can modify indi
 3. Adjust project statuses (active/draft/archived) as appropriate
 4. Verify that all required fields are properly populated
 
+## Batch Document Extraction Script
+
+Processes documents in a directory using AI extraction to create projects.
+
+#### Usage
+
+**Basic usage:**
+```bash
+npm run extract:batch ./path/to/documents
+```
+
+**With specific organization:**
+```bash
+npm run extract:batch ./documents -- --org=org123
+```
+
+**With extraction quality:**
+```bash
+npm run extract:batch ./documents -- --quality=high
+```
+
+**Direct TypeScript execution:**
+```bash
+npx tsx scripts/batch-extract-documents.ts ./documents --org=org123 --quality=medium
+```
+
+#### Parameters
+
+- `directory` (required): Path to directory containing documents
+- `--org=<id>` (optional): Organization ID to associate projects with
+- `--quality=<level>` (optional): Extraction quality: low, medium, high (default: medium)
+- `--help, -h`: Show help message
+
+#### Supported File Types
+
+- `.doc`, `.docx` - Microsoft Word documents
+- `.pdf` - PDF documents  
+- `.txt` - Plain text files
+- `.md` - Markdown files
+
+#### Features
+
+- **Document Discovery**: Automatically finds supported document types in the directory
+- **File Summary**: Shows count, types, and sizes of documents before processing
+- **User Confirmation**: Requires confirmation before processing begins
+- **Organization Selection**: Interactive selection of target organization if not specified
+- **Parallel Batch Processing**: Processes 5 files concurrently per batch to maximize throughput while respecting AI service limits
+- **Progress Tracking**: Real-time progress updates for each document
+- **Deduplication**: Automatically detects existing projects from the same file
+- **Error Handling**: Continues processing even if individual files fail
+- **Results Summary**: Detailed report of successful, failed, and duplicate projects
+
+#### Processing Quality Levels
+
+- **low**: Faster processing, basic extraction
+- **medium**: Balanced speed and quality (default)
+- **high**: More thorough analysis, slower processing
+
+#### Examples
+
+```bash
+# Process all documents in a folder with default settings
+npm run extract:batch ./project-briefs
+
+# Process with specific organization and high quality
+npm run extract:batch ./documents -- --org=org-123 --quality=high
+
+# Show help
+npm run extract:batch -- --help
+
+# Process documents from examples directory
+npm run extract:batch ../examples
+```
+
+#### Output
+
+The script provides:
+- Real-time progress for each document
+- Success/failure status for each file
+- Final summary with statistics
+- List of any errors encountered
+- Links to view created projects
+
 ### Troubleshooting
 
 - **File not found:** Ensure the JSON file path is correct
@@ -161,6 +248,7 @@ npm run import:projects
 - `npm run install:system` - Bootstrap system with roles and admin users
 - `npm run seed` - Add sample campaign data
 - `npm run import:projects` - Import project briefs from JSON file
+- `npm run extract:batch` - Batch extract projects from documents in a directory
 
 ## Environment Variables
 

@@ -5,6 +5,7 @@ import { SessionConcept } from "@/lib/concepts/common/session";
 import { MembershipConcept } from "@/lib/concepts/common/membership";
 import { RoleConcept } from "@/lib/concepts/common/role";
 import { OrganizationConcept } from "@/lib/concepts/common/organization";
+import { AuthConcept } from "@/lib/concepts/common/auth";
 
 
 /**
@@ -24,146 +25,85 @@ export function makeAuthSyncs(
   Membership: MembershipConcept,
   Role: RoleConcept,
   Organization: OrganizationConcept,
+  Auth: AuthConcept,
 ) {
   console.log('makeAuthSyncs called - registering auth syncs');
 
-  /**
-   * Get current authenticated user with RBAC context
-   * Triggered by: API.request(GET /api/auth/current-user)
-   * The bridge will pre-populate the user data from better-auth in headers
-   */
-  const GetCurrentUser = ({ request, payload, requestId, status, body }: Vars) => ({
+  // 1) Phase A: Build current user (invoke async action)
+  const BuildCurrentUser = ({ request, userId, userEmail, userName, sessionKey }: Vars) => ({
     when: actions([
-      API.request,
+      API.request as any,
       { method: "GET", path: "/api/auth/current-user" },
       { request },
     ]),
     where: (frames: Frames) => {
-      console.log('GetCurrentUser sync triggered! Frames:', frames.length);
       const result = new Frames();
       for (const frame of frames) {
-        // Access the API.request output from the frame via the bound symbol
-        const requestData = (frame as any)[request];
-        const headers = requestData?.headers ?? {};
-        const userIdHeader = headers['x-user-id'];
-        const userEmail = headers['x-user-email'] || '';
-
-        // Determine effective role from environment (admin list and auto-register domain)
-        const adminUsers = (process.env.ADMIN_USERS || '')
-          .split(',')
-          .map((e) => e.trim().toLowerCase())
-          .filter(Boolean);
-        const autoDomain = (process.env.AUTO_REGISTER_DOMAIN || '').toLowerCase();
-
-        let roleName = 'guest';
-        if (userEmail && adminUsers.includes(userEmail.toLowerCase())) {
-          roleName = 'platform_admin';
-        } else if (autoDomain && userEmail.toLowerCase().endsWith(`@${autoDomain}`)) {
-          roleName = 'manager';
-        }
-
-        const roleDefs: Record<string, { displayName: string; scope: string; permissions: Record<string, any> }> = {
-          platform_admin: {
-            displayName: 'Platform Admin',
-            scope: 'platform',
-            permissions: {
-              organizations: { create: true, read: true, update: true, delete: true, manage_members: true },
-              campaigns: { create: true, read: true, update: true, delete: true, publish: true },
-              projects: { create: true, read: true, update: true, delete: true, assign: true },
-              teams: { create: true, read: true, update: true, delete: true, manage_members: true },
-              profiles: { create: true, read: true, update: true, delete: true, verify: true },
-              users: { read: true, update: true },
-            },
-          },
-          manager: {
-            displayName: 'Manager',
-            scope: 'organization',
-            permissions: {
-              organizations: { read: true, update: true, manage_members: true },
-              campaigns: { create: true, read: true, update: true, publish: true },
-              projects: { create: true, read: true, update: true, assign: true },
-              teams: { create: true, read: true, update: true, manage_members: true },
-              profiles: { read: true, update: true, delete: true, verify: true },
-              users: { read: true, update: true, delete: true },
-            },
-          },
-          guest: {
-            displayName: 'Guest',
-            scope: 'public',
-            permissions: {},
-          },
-        };
-
-        const selectedRole = roleDefs[roleName] || roleDefs.guest;
-
-        const responseBody = userIdHeader
-          ? {
-              id: userIdHeader,
-              email: userEmail,
-              name: headers['x-user-name'] || 'User',
-              isActive: true,
-              currentContext: {},
-              effectiveRole: { name: roleName, displayName: selectedRole.displayName, scope: selectedRole.scope, permissions: selectedRole.permissions },
-              availableContexts: [],
-            }
-          : { error: 'Not authenticated' };
-
-        const responseStatus = userIdHeader ? 200 : 401;
-
+        const req = (frame as any)[request];
+        const headers = req?.headers || {};
         result.push({
           ...(frame as any),
-          [payload]: responseBody,
-          [requestId]: requestData?.id,
-          [status]: responseStatus,
-          [body]: responseBody,
+          [userId]: headers['x-user-id'],
+          [userEmail]: headers['x-user-email'],
+          [userName]: headers['x-user-name'] || 'User',
+          [sessionKey]: headers['x-session-key'] || '',
         } as any);
       }
       return result;
     },
-    then: actions([
-      API.respond as any,
-      {
-        requestId,
-        status,
-        body,
-      },
-    ]),
+    then: actions(
+      [(Auth as any).buildCurrentUser, { userId, userEmail, userName, sessionKey }],
+    ),
+  });
+
+  // 2) Phase B: Respond with built user
+  const RespondCurrentUser = ({ request, body }: Vars) => ({
+    when: actions(
+      [API.request as any, { method: "GET", path: "/api/auth/current-user" }, { request }],
+      [(Auth as any).buildCurrentUser, {}, { authUser: body }],
+    ),
+    then: actions(
+      [API.respond as any, { requestId: request, status: 200, body }],
+    ),
   });
 
   /**
    * Switch user context
    */
-  const SwitchUserContext = ({ request, requestId, status, body }: Vars) => ({
+  // Switch context Phase A
+  const SwitchContext = ({ request, userId, sessionKey, contextId }: Vars) => ({
     when: actions(
-      [API.request as any, { 
-        method: "POST", 
-        path: "/api/auth/switch-context"
-      }, { request }]
+      [API.request as any, { method: "POST", path: "/api/auth/switch-context" }, { request }]
     ),
     where: (frames: Frames) => {
       const result = new Frames();
       for (const frame of frames) {
         const req = (frame as any)[request];
         const headers = req?.headers || {};
-        const ctxId = headers['x-context-id'] || undefined;
-        const userId = headers['x-user-id'] || undefined;
-        const sessionKey = headers['x-session-key'] || undefined;
-
-        const responseBody = { success: true, contextId: ctxId, userId, sessionKey };
-
+        const body = req?.body || {};
         result.push({
           ...(frame as any),
-          [requestId]: req?.id,
-          [status]: 200,
-          [body]: responseBody,
+          [userId]: headers['x-user-id'],
+          [sessionKey]: headers['x-session-key'],
+          [contextId]: body.contextId || headers['x-context-id'],
         } as any);
       }
       return result;
     },
-    then: actions([
-      API.respond as any,
-      { requestId, status, body },
-    ])
+    then: actions(
+      [(Auth as any).switchContext, { userId, sessionKey, contextId }],
+    ),
+  });
+
+  // Switch context Phase B: respond
+  const RespondSwitchContext = ({ request, payload }: Vars) => ({
+    when: actions(
+      [API.request as any, { method: "POST", path: "/api/auth/switch-context" }, { request }],
+      [(Auth as any).switchContext, {}, { success: payload }],
+    ),
+    then: actions(
+      [API.respond as any, { requestId: request, status: 200, body: payload }],
+    ),
   });
 
   /**
@@ -176,7 +116,7 @@ export function makeAuthSyncs(
         path: "/api/auth/check-permission"
       }, { request }]
     ),
-    where: (frames: Frames) => {
+    where: async (frames: Frames) => {
       const result = new Frames();
       for (const frame of frames) {
         const req = (frame as any)[request];
@@ -205,7 +145,7 @@ export function makeAuthSyncs(
   /**
    * Get user organizations
    */
-  const GetUserOrganizations = ({ request, requestId, status, body }: Vars) => ({
+  const GetUserOrganizations = ({ request, userId, body }: Vars) => ({
     when: actions(
       [API.request as any, { 
         method: "GET", 
@@ -216,20 +156,18 @@ export function makeAuthSyncs(
       const result = new Frames();
       for (const frame of frames) {
         const req = (frame as any)[request];
-        const organizations: any[] = [];
+        const headers = req?.headers || {};
         result.push({
           ...(frame as any),
-          [requestId]: req?.id,
-          [status]: 200,
-          [body]: { organizations },
+          [userId]: headers['x-user-id'],
         } as any);
       }
       return result;
     },
-    then: actions([
-      API.respond as any,
-      { requestId, status, body },
-    ])
+    then: actions(
+      [(Auth as any).listUserOrganizations, { userId }, { organizations: body }],
+      [API.respond as any, { requestId: request, status: 200, body }],
+    )
   });
 
   /**
@@ -242,7 +180,7 @@ export function makeAuthSyncs(
         path: "/api/auth/logout"
       }, { request }]
     ),
-    where: (frames: Frames) => {
+    where: async (frames: Frames) => {
       const result = new Frames();
       for (const frame of frames) {
         const req = (frame as any)[request];
@@ -273,7 +211,7 @@ export function makeAuthSyncs(
     when: actions(
       [API.request as any, {}, { request }]
     ),
-    where: (frames: Frames) => {
+    where: async (frames: Frames) => {
       const frame = frames[0] as any;
       const headers = frame.request?.headers || {};
       const sessionKey = headers['x-session-key'];
@@ -297,12 +235,14 @@ export function makeAuthSyncs(
   });
 
   console.log('makeAuthSyncs returning syncs:', {
-    GetCurrentUser: typeof GetCurrentUser,
+    BuildCurrentUser: typeof BuildCurrentUser,
   });
 
   return {
-    GetCurrentUser,
-    SwitchUserContext,
+    BuildCurrentUser,
+    RespondCurrentUser,
+    SwitchContext,
+    RespondSwitchContext,
     CheckUserPermission,
     GetUserOrganizations,
     LogoutUser,

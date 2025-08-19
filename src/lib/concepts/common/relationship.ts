@@ -160,9 +160,14 @@ export class RelationshipConcept {
     });
   }
 
-  async _getChildren(input: { parentEntityType: string; parentEntityId: string }): Promise<Relationship[]> {
+  async _getChildren(input: { parentEntityType: string; parentEntityId: string, childEntityType?: string }): Promise<Relationship[]> {
     return await prisma.relationship.findMany({
-      where: { fromEntityType: input.parentEntityType, fromEntityId: input.parentEntityId, relationType: 'child' },
+      where: { 
+        toEntityType: input.parentEntityType, 
+        toEntityId: input.parentEntityId, 
+        relationType: 'child',
+        fromEntityType: input.childEntityType ?? undefined
+      },
       orderBy: { updatedAt: "desc" },
     });
   }

@@ -61,8 +61,6 @@ export class ProfileConcept {
     }
   }
 
- 
-
   async verify(input: {
     id: string;
   }): Promise<{ profile: Profile } | { error: string }> {
@@ -80,8 +78,6 @@ export class ProfileConcept {
       return { error: `Failed to verify profile: ${error}` };
     }
   }
-
-  // recordProjectCompletion removed; rating updates should be handled via domain-specific workflows
 
   async activate(input: {
     id: string;

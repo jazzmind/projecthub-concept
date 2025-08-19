@@ -12,7 +12,7 @@ import { SessionConcept } from "@/lib/concepts/common/session";
  * Handles organization creation, management, and membership workflows
  */
 
-export function makeApiOrganizationSyncs(
+export async function makeApiOrganizationSyncs(
   API: APIConcept,
   Organization: OrganizationConcept,
   User: UserConcept,
@@ -22,7 +22,7 @@ export function makeApiOrganizationSyncs(
 ) {
 
   // Create organization with permission check
-  const CreateOrganization = ({ 
+  const CreateOrganization = async ({ 
     request,
     name,
     description,
@@ -46,7 +46,7 @@ export function makeApiOrganizationSyncs(
         parentOrganization
       }, { request }],
     ),
-    where: (frames: Frames) => {
+    where: async (frames: Frames) => {
       const result = new Frames();
       for (const frame of frames) {
         
@@ -75,7 +75,7 @@ export function makeApiOrganizationSyncs(
   });
 
   // Handle organization creation success and auto-assign creator as admin
-  const CreateOrganizationSuccess = ({ 
+  const CreateOrganizationSuccess = async ({ 
     request, 
     organizationId, 
     organization, 
@@ -85,7 +85,7 @@ export function makeApiOrganizationSyncs(
       [API.request as any, { method: "POST", path: "/api/organizations" }, { request }],
       [Organization.create as any, { organization: organizationId }, { organization }],
     ),
-    where: (frames: Frames) => {
+    where: async (frames: Frames) => {
       const result = new Frames();
       for (const frame of frames) {
         const currentUser = (frame as any).headers?.['x-user-id'];
@@ -115,7 +115,7 @@ export function makeApiOrganizationSyncs(
   });
 
   // Auto-accept admin membership
-  const CreateOrganizationAutoAcceptAdmin = ({ 
+  const CreateOrganizationAutoAcceptAdmin = async ({ 
     request, 
     organizationId, 
     userId, 
@@ -140,7 +140,7 @@ export function makeApiOrganizationSyncs(
   });
 
   // Update organization
-  const UpdateOrganization = ({ 
+  const UpdateOrganization = async ({ 
     request,
     organizationId,
     name,
@@ -174,7 +174,7 @@ export function makeApiOrganizationSyncs(
   });
 
   // Get organization details (trigger)
-  const GetOrganization = ({ request, organizationId }: Vars) => ({
+  const GetOrganization = async ({ request, organizationId }: Vars) => ({
     when: actions(
       [API.request as any, { 
         method: "GET", 
@@ -183,17 +183,17 @@ export function makeApiOrganizationSyncs(
       }, { request }],
     ),
     then: actions([
-      Organization.getById, { id: organizationId }  // Use action form, not query form
+      Organization._getById, { id: organizationId }  // Use action form, not query form
     ]),
   });
 
   // Get organization details (response)
-  const GetOrganizationResponse = ({ request, requestId, organizationId, organizationData, responseBody }: Vars) => ({
+  const GetOrganizationResponse = async ({ request, requestId, organizationId, organizationData, responseBody }: Vars) => ({
     when: actions(
       [API.request as any, { method: "GET", path: "/api/organizations/:organizationId" }, { request }],
-      [Organization.getById, { id: organizationId }, { organization: organizationData }],
+      [Organization._getById, { id: organizationId }, { organization: organizationData }],
     ),
-    where: (frames: Frames) => {
+    where: async (frames: Frames) => {
       return frames.map((frame) => {
         const organization = (frame as any)[organizationData];
         const bodyData = { organization };
@@ -212,25 +212,25 @@ export function makeApiOrganizationSyncs(
   });
 
   // Trigger organization fetch (like CreateQuiz pattern in sync-quizzie)
-  const ListOrganizations = ({ request }: Vars) => ({
+  const ListOrganizations = async ({ request }: Vars) => ({
     when: actions([
       API.request,
       { method: "GET", path: "/api/organizations" },
       { request },
     ]),
     then: actions([
-      Organization.listTopLevel,
+      Organization._getTopLevel,
       {},
     ]),
   });
 
   // Respond with organizations when available (like CreateQuizResponse pattern)
-  const ListOrganizationsResponse = ({ request, requestId, organizationsData, responseBody }: Vars) => ({
+  const ListOrganizationsResponse = async ({ request, requestId, organizationsData, responseBody }: Vars) => ({
     when: actions(
       [API.request, { method: "GET", path: "/api/organizations" }, { request }],
-      [Organization.listTopLevel, {}, { organizations: organizationsData }],
+      [Organization._getTopLevel, {}, { organizations: organizationsData }],
     ),
-    where: (frames: Frames) => {
+    where: async (frames: Frames) => {
       return frames.map((frame) => {
         const orgData = (frame as any)[organizationsData];
         
@@ -251,7 +251,7 @@ export function makeApiOrganizationSyncs(
   });
 
   // Get organization members (trigger)
-  const GetOrganizationMembers = ({ request, organizationId }: Vars) => ({
+  const GetOrganizationMembers = async ({ request, organizationId }: Vars) => ({
     when: actions(
       [API.request as any, { 
         method: "GET", 
@@ -260,17 +260,17 @@ export function makeApiOrganizationSyncs(
       }, { request }],
     ),
     then: actions([
-      Membership.listByTarget, { targetEntity: organizationId }  // Use query form for data fetching
+      Membership._getByTargetEntity, { targetEntity: organizationId }  // Use query form for data fetching
     ]),
   });
 
   // Get organization members (response)
-  const GetOrganizationMembersResponse = ({ request, requestId, organizationId, membersData, responseBody }: Vars) => ({
+  const GetOrganizationMembersResponse = async ({ request, requestId, organizationId, membersData, responseBody }: Vars) => ({
     when: actions(
       [API.request as any, { method: "GET", path: "/api/organizations/:organizationId/members" }, { request }],
-      [Membership.listByTarget, { targetEntity: organizationId }, { members: membersData }],
+      [Membership._getByTargetEntity, { targetEntity: organizationId }, { members: membersData }],
     ),
-    where: (frames: Frames) => {
+    where: async (frames: Frames) => {
       return frames.map((frame) => {
         const memberships = (frame as any)[membersData];  // This is the memberships array
         const bodyData = { members: memberships };  // Rename to "members" for API consistency
@@ -288,7 +288,7 @@ export function makeApiOrganizationSyncs(
   });
 
   // Activate organization
-  const ActivateOrganization = ({ request, organizationId }: Vars) => ({
+  const ActivateOrganization = async ({ request, organizationId }: Vars) => ({
     when: actions(
       [API.request as any, { 
         method: "POST", 
@@ -302,7 +302,7 @@ export function makeApiOrganizationSyncs(
   });
 
   // Deactivate organization
-  const DeactivateOrganization = ({ request, organizationId }: Vars) => ({
+  const DeactivateOrganization = async ({ request, organizationId }: Vars) => ({
     when: actions(
       [API.request as any, { 
         method: "POST", 
@@ -316,7 +316,7 @@ export function makeApiOrganizationSyncs(
   });
 
   // Search organizations
-  const SearchOrganizations = ({ request, name, payload }: Vars) => ({
+  const SearchOrganizations = async ({ request, name, payload }: Vars) => ({
     when: actions(
       [API.request as any, { 
         method: "GET", 
@@ -324,7 +324,7 @@ export function makeApiOrganizationSyncs(
         name
       }, { request }],
     ),
-    where: (frames: Frames) => {
+    where: async (frames: Frames) => {
       const result = new Frames();
       for (const frame of frames) {
         // Simplified - would search organizations

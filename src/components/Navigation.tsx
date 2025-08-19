@@ -12,8 +12,9 @@ import {
 } from '@/lib/auth-context';
 import Image from 'next/image';
 import { useState } from 'react';
-import { usePathname } from 'next/navigation';
 import OrganizationSwitcher from './OrganizationSwitcher';
+import { CampaignSwitcher } from './CampaignSwitcher';
+import { CampaignBadge } from './CampaignBadge';
 
 export default function Navigation() {
   const { user, currentOrganization, logout, isLoading, viewAsRole, setViewAsRole } = useAuth();
@@ -21,9 +22,6 @@ export default function Navigation() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showMyProjects, setShowMyProjects] = useState(false);
-
-    
-  console.log('user', user);
 
   if (isLoading) {
     return (
@@ -102,14 +100,14 @@ export default function Navigation() {
     if (canReadProfiles) {
       // Show different labels based on role
       const hasExpertRole = useHasRole(ROLES.EXPERT);
-      const hasIndustryPartnerRole = useHasRole(ROLES.INDUSTRY_PARTNER);
+      const hasProviderRole = useHasRole(ROLES.PROVIDER);
       
       if (isAdmin) {
         items.push(
           { href: '/experts', label: 'Experts', show: true },
           { href: '/providers', label: 'Providers', show: true }
         );
-      } else if (hasExpertRole || hasIndustryPartnerRole) {
+      } else if (hasExpertRole || hasProviderRole) {
         items.push({ href: '/experts', label: 'Experts', show: true });
       }
     }
@@ -145,10 +143,7 @@ export default function Navigation() {
                     <span className="text-lg font-semibold text-gray-900 dark:text-white truncate max-w-[200px]" title={currentOrganization.name}>
                       {currentOrganization.name}
                     </span>
-                    <div className="h-4 w-px bg-gray-300 dark:bg-gray-600"></div>
-                    <button className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors">
-                      Create Campaign
-                    </button>
+                   
                   </>
                 ) : (
                   <a href='/' className="flex items-center space-x-2 whitespace-nowrap">
@@ -158,8 +153,11 @@ export default function Navigation() {
               </div>
             </div>
 
-            {/* Organization Switcher */}
-            <OrganizationSwitcher />
+            {/* Organization & Campaign Switchers */}
+            <div className="flex items-center gap-3">
+              <OrganizationSwitcher />
+              <CampaignSwitcher />
+            </div>
           </div>
 
           {/* Center Navigation / Search */}  
@@ -201,26 +199,7 @@ export default function Navigation() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-300">
-              {currentOrganization && (
-                <>
-                  <span className="font-medium">{currentOrganization.name}</span>
-                  <div className="w-px h-4 bg-gray-300 dark:bg-gray-600"></div>
-                  <span>Campaign Name</span>
-                </>
-              )}
-            </div>
-          {/* <nav className="hidden md:flex space-x-8">
-            {navigationItems.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                  className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white text-sm font-medium transition-colors"
-              >
-                {item.label}
-              </a>
-            ))}
-          </nav> */}
+           
 
           {/* Right side - User menu */}
           <div className="flex items-center space-x-4">
@@ -266,11 +245,6 @@ export default function Navigation() {
                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       {user.effectiveRole.displayName}
                     </div>
-                    {currentOrganization && (
-                      <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-medium">
-                        {currentOrganization.name}
-                      </div>
-                    )}
                   </div>
                   <div className="p-2">
                     <a
@@ -315,7 +289,7 @@ export default function Navigation() {
                         </button>
                         
                         {/* Only show other roles if user has higher permissions */}
-                        {(user?.effectiveRole.name === ROLES.PLATFORM_ADMIN || user?.effectiveRole.name === ROLES.ORG_ADMIN) && (
+                        {(user?.effectiveRole.name === ROLES.PLATFORM_ADMIN || user?.effectiveRole.name === ROLES.MANAGER) && (
                           <>
                             <button
                               onClick={() => {
@@ -345,11 +319,11 @@ export default function Navigation() {
                             </button>
                             <button
                               onClick={() => {
-                                setViewAsRole(ROLES.INDUSTRY_PARTNER);
+                                setViewAsRole(ROLES.PROVIDER);
                                 setShowUserMenu(false);
                               }}
                               className={`w-full text-left px-2 py-1 text-xs rounded transition-colors ${
-                                viewAsRole === ROLES.INDUSTRY_PARTNER 
+                                viewAsRole === ROLES.PROVIDER 
                                   ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' 
                                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                               }`}

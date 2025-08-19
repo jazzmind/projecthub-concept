@@ -28,7 +28,7 @@ export const { useSession, signIn, signOut, signUp } = authClient;
 export async function signInWithGoogle() {
   return await signIn.social({
     provider: 'google',
-    callbackURL: window.location.origin + '/dashboard', // Redirect to dashboard after OAuth
+    callbackURL: window.location.origin + '/projects', // Redirect to projects after OAuth
   });
 }
 
@@ -59,7 +59,7 @@ export async function verifyEmailOtp(email: string, otp: string) {
   if (response.ok) {
     // Small delay to allow cookie propagation, then hard reload to re-run client bootstrap
     setTimeout(() => {
-      window.location.replace('/dashboard');
+      window.location.replace('/projects');
     }, 50);
   }
   return json;

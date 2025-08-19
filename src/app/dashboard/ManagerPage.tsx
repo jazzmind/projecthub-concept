@@ -58,17 +58,17 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-64">
-        <div className="text-lg">Loading dashboard...</div>
+      <div className="flex justify-center items-center min-h-64 min-h-screen bg-white dark:bg-gray-900 p-6">
+        <div className="text-lg text-gray-900 dark:text-white">Loading dashboard...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 min-h-screen bg-white dark:bg-gray-900 p-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-        <p className="text-gray-600">Overview of your ProjectHub platform</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Dashboard</h1>
+        <p className="text-gray-600 dark:text-gray-400">Overview of your ProjectHub platform</p>
       </div>
 
       {/* Key Metrics */}
@@ -76,17 +76,17 @@ export default function DashboardPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Campaigns</p>
-              <p className="text-3xl font-bold text-blue-600">{stats.totalCampaigns}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Campaigns</p>
+              <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{stats.totalCampaigns}</p>
             </div>
-            <div className="text-blue-500">
+            <div className="text-blue-500 dark:text-blue-400">
               <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
             </div>
           </div>
           <div className="mt-2">
-            <span className="text-green-600 text-sm">
+            <span className="text-green-600 dark:text-green-400 text-sm">
               {stats.activeCampaigns} active
             </span>
           </div>
@@ -95,17 +95,17 @@ export default function DashboardPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Active Teams</p>
-              <p className="text-3xl font-bold text-green-600">{stats.activeTeams}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Teams</p>
+              <p className="text-3xl font-bold text-green-600 dark:text-green-400">{stats.activeTeams}</p>
             </div>
-            <div className="text-green-500">
+            <div className="text-green-500 dark:text-green-400">
               <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
               </svg>
             </div>
           </div>
           <div className="mt-2">
-            <span className="text-gray-600 text-sm">
+            <span className="text-gray-600 dark:text-gray-400 text-sm">
               {stats.totalTeams} total teams
             </span>
           </div>
@@ -114,17 +114,17 @@ export default function DashboardPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Available Projects</p>
-              <p className="text-3xl font-bold text-purple-600">{stats.totalProjects}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Available Projects</p>
+              <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{stats.totalProjects}</p>
             </div>
-            <div className="text-purple-500">
+            <div className="text-purple-500 dark:text-purple-400">
               <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd"/>
               </svg>
             </div>
           </div>
           <div className="mt-2">
-            <span className="text-gray-600 text-sm">
+            <span className="text-gray-600 dark:text-gray-400 text-sm">
               Ready for assignment
             </span>
           </div>
@@ -133,17 +133,17 @@ export default function DashboardPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Pending Applications</p>
-              <p className="text-3xl font-bold text-orange-600">{stats.pendingApplications}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Pending Applications</p>
+              <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">{stats.pendingApplications}</p>
             </div>
-            <div className="text-orange-500">
+            <div className="text-orange-500 dark:text-orange-400">
               <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
               </svg>
             </div>
           </div>
           <div className="mt-2">
-            <span className="text-red-600 text-sm">
+            <span className="text-red-600 dark:text-red-400 text-sm">
               Require review
             </span>
           </div>
@@ -153,36 +153,36 @@ export default function DashboardPage() {
       {/* Network Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card">
-          <h3 className="text-lg font-semibold mb-4">Network Size</h3>
+          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Network Size</h3>
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Industry Partners</span>
-              <span className="font-semibold text-lg">{stats.totalPartners}</span>
+              <span className="text-gray-600 dark:text-gray-400">Industry Partners</span>
+              <span className="font-semibold text-lg text-gray-900 dark:text-white">{stats.totalPartners}</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-blue-600 h-2 rounded-full" style={{width: '67%'}}></div>
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Domain Experts</span>
-              <span className="font-semibold text-lg">{stats.totalExperts}</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-green-600 h-2 rounded-full" style={{width: '23%'}}></div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full" style={{width: '67%'}}></div>
             </div>
             
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Total Assignments</span>
-              <span className="font-semibold text-lg">{stats.totalAssignments}</span>
+              <span className="text-gray-600 dark:text-gray-400">Domain Experts</span>
+              <span className="font-semibold text-lg text-gray-900 dark:text-white">{stats.totalExperts}</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-purple-600 h-2 rounded-full" style={{width: '89%'}}></div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div className="bg-green-600 dark:bg-green-500 h-2 rounded-full" style={{width: '23%'}}></div>
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600 dark:text-gray-400">Total Assignments</span>
+              <span className="font-semibold text-lg text-gray-900 dark:text-white">{stats.totalAssignments}</span>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div className="bg-purple-600 dark:bg-purple-500 h-2 rounded-full" style={{width: '89%'}}></div>
             </div>
           </div>
         </div>
 
         <div className="card">
-          <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Quick Actions</h3>
           <div className="grid grid-cols-2 gap-3">
             <a href="/campaigns/new" className="btn btn-primary text-center">
               Create Campaign
@@ -202,37 +202,37 @@ export default function DashboardPage() {
 
       {/* Recent Activity */}
       <div className="card">
-        <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
+        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Recent Activity</h3>
         <div className="space-y-3">
-          <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+          <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded">
+            <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full"></div>
             <div>
-              <p className="text-sm">New team formed for "AI Ethics in Healthcare" campaign</p>
-              <p className="text-xs text-gray-500">2 hours ago</p>
+              <p className="text-sm text-gray-900 dark:text-white">New team formed for "AI Ethics in Healthcare" campaign</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">2 hours ago</p>
             </div>
           </div>
           
-          <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+          <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded">
+            <div className="w-2 h-2 bg-blue-500 dark:bg-blue-400 rounded-full"></div>
             <div>
-              <p className="text-sm">5 new project applications received</p>
-              <p className="text-xs text-gray-500">4 hours ago</p>
+              <p className="text-sm text-gray-900 dark:text-white">5 new project applications received</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">4 hours ago</p>
             </div>
           </div>
           
-          <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded">
-            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+          <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded">
+            <div className="w-2 h-2 bg-purple-500 dark:bg-purple-400 rounded-full"></div>
             <div>
-              <p className="text-sm">Expert Dr. Sarah Chen joined the platform</p>
-              <p className="text-xs text-gray-500">6 hours ago</p>
+              <p className="text-sm text-gray-900 dark:text-white">Expert Dr. Sarah Chen joined the platform</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">6 hours ago</p>
             </div>
           </div>
           
-          <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded">
-            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+          <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded">
+            <div className="w-2 h-2 bg-orange-500 dark:bg-orange-400 rounded-full"></div>
             <div>
-              <p className="text-sm">New industry partner from TechCorp registered</p>
-              <p className="text-xs text-gray-500">1 day ago</p>
+              <p className="text-sm text-gray-900 dark:text-white">New industry partner from TechCorp registered</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">1 day ago</p>
             </div>
           </div>
         </div>

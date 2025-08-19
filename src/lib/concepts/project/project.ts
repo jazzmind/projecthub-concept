@@ -14,6 +14,7 @@ export class ProjectConcept {
     difficulty: string;
     estimatedHours: number;
     deliverables: string[];
+    fileHash?: string;
   }): Promise<{ project: Project } | { error: string }> {
     try {
       // Validate required fields
@@ -34,6 +35,7 @@ export class ProjectConcept {
           deliverables: input.deliverables,
           status: "active",
           aiGenerated: false,
+          fileHash: input.fileHash,
         }
       });
 
@@ -86,20 +88,52 @@ export class ProjectConcept {
     organizationId: string;
     quality?: 'low' | 'medium' | 'high';
     onProgress?: (stage: string, progress: number) => void;
-  }): Promise<{ project: Project } | { error: string }> {
+  }): Promise<{ project: Project; wasExisting?: boolean } | { error: string }> {
     try {
+      // Generate file hash for deduplication
+      input.onProgress?.('Computing file hash', 5);
+      const crypto = require('crypto');
+      const fileHash = crypto.createHash('sha256').update(input.fileBuffer).digest('hex');
+      
+      // Check if we already have a project for this file hash
+      input.onProgress?.('Checking for existing project', 10);
+      const existingProjects = await this._getByFileHash({ fileHash });
+      
+      if (existingProjects.length > 0) {
+        const existingProject = existingProjects[0];
+        console.log(`Found existing project for file hash: ${fileHash}, project: ${existingProject.title}`);
+        
+        // Ensure this project has a relationship with the current organization
+        input.onProgress?.('Linking existing project to organization', 90);
+        const relationshipResult = await this.ensureProjectOrganizationRelationship({
+          projectId: existingProject.id,
+          organizationId: input.organizationId
+        });
+        
+        if ('error' in relationshipResult) {
+          console.warn('Failed to create relationship with organization:', relationshipResult.error);
+        }
+        
+        input.onProgress?.('Project already exists and linked', 100);
+        return { project: existingProject, wasExisting: true };
+      }
+
       // Extract project data from document using AI
-      input.onProgress?.('Starting AI extraction', 0);
+      input.onProgress?.('Starting AI extraction', 15);
       const extractedData = await projectExtractionService.extractFromDocument(
         input.fileBuffer,
         input.originalFilename,
         input.organizationId,
         input.quality || 'medium',
-        input.onProgress
+        (stage: string, progress: number) => {
+          // Map AI extraction progress to 15-75 range
+          const mappedProgress = 15 + (progress * 0.6);
+          input.onProgress?.(stage, mappedProgress);
+        }
       );
 
       // Generate project image
-      input.onProgress?.('Generating project image', 85);
+      input.onProgress?.('Generating project image', 80);
       let imageUrl: string | null = null;
       try {
         imageUrl = await projectExtractionService.generateProjectImage(
@@ -113,7 +147,7 @@ export class ProjectConcept {
       }
 
       // Create the project in database
-      input.onProgress?.('Creating project record', 95);
+      input.onProgress?.('Creating project record', 90);
       const project = await prisma.project.create({
         data: {
           title: extractedData.title,
@@ -127,16 +161,18 @@ export class ProjectConcept {
           deliverables: extractedData.deliverables,
           status: "draft",
           aiGenerated: true,
+          fileHash: fileHash, // Store the file hash
           sourceData: {
             originalFilename: input.originalFilename,
             extractedAt: new Date().toISOString(),
-            imagePrompt: extractedData.imagePrompt
+            imagePrompt: extractedData.imagePrompt,
+            fileHash: fileHash
           }
         }
       });
 
       // Create relationship between project and organization
-      input.onProgress?.('Linking project to organization', 98);
+      input.onProgress?.('Linking project to organization', 95);
       try {
         await prisma.relationship.create({
           data: {
@@ -144,10 +180,11 @@ export class ProjectConcept {
             fromEntityId: project.id,
             toEntityType: 'organization',
             toEntityId: input.organizationId,
-            relationType: 'belongs_to',
+            relationType: 'child', // Changed from 'child' to 'belongs_to' for consistency
             metadata: {
               createdBy: 'ai_extraction',
-              sourceFile: input.originalFilename
+              sourceFile: input.originalFilename,
+              fileHash: fileHash
             }
           }
         });
@@ -157,7 +194,7 @@ export class ProjectConcept {
       }
 
       input.onProgress?.('Project created successfully', 100);
-      return { project };
+      return { project, wasExisting: false };
     } catch (error) {
       return { error: `Failed to extract project from document: ${error instanceof Error ? error.message : 'Unknown error'}` };
     }
@@ -176,12 +213,23 @@ export class ProjectConcept {
   }
 
   // Queries
-  async _getById(input: { id: string }): Promise<Project[]> {
+  async _getById(input: { id: string }): Promise<Project | null> {
     try {
       const project = await prisma.project.findUnique({
         where: { id: input.id }
       });
-      return project ? [project] : [];
+      return project;
+    } catch {
+      return null;
+    }
+  }
+
+  async _getByIds(input: { id: string[] }): Promise<Project[]> {
+    try {
+      const projects = await prisma.project.findMany({
+        where: { id: { in: input.id } }
+      });
+      return projects;
     } catch {
       return [];
     }
@@ -273,7 +321,7 @@ export class ProjectConcept {
           fromEntityType: 'project',
           toEntityType: 'organization',
           toEntityId: input.organizationId,
-          relationType: 'belongs_to'
+          relationType: 'child'
         }
       });
 
@@ -294,6 +342,125 @@ export class ProjectConcept {
       return projects;
     } catch {
       return [];
+    }
+  }
+
+  async _getByOrganizationPaginated(input: { 
+    organizationId: string;
+    skip?: number;
+    take?: number;
+    filters?: {
+      industry?: string;
+      domain?: string;
+      status?: string;
+      difficulty?: string;
+    };
+  }): Promise<{ projects: Project[]; total: number; hasMore: boolean }> {
+    try {
+      // Get project IDs that belong to the organization via relationships
+      const relationships = await prisma.relationship.findMany({
+        where: {
+          fromEntityType: 'project',
+          toEntityType: 'organization',
+          toEntityId: input.organizationId,
+          relationType: 'child'
+        }
+      });
+
+      const projectIds = relationships.map(rel => rel.fromEntityId);
+
+      if (projectIds.length === 0) {
+        return { projects: [], total: 0, hasMore: false };
+      }
+
+      // Build filter conditions
+      const where: any = {
+        id: { in: projectIds }
+      };
+
+      if (input.filters) {
+        if (input.filters.industry) {
+          where.industry = { contains: input.filters.industry, mode: 'insensitive' };
+        }
+        if (input.filters.domain) {
+          where.domain = { contains: input.filters.domain, mode: 'insensitive' };
+        }
+        if (input.filters.status) {
+          where.status = input.filters.status;
+        }
+        if (input.filters.difficulty) {
+          where.difficulty = input.filters.difficulty;
+        }
+      }
+
+      // Get total count
+      const total = await prisma.project.count({ where });
+
+      // Get paginated projects
+      const projects = await prisma.project.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: input.skip || 0,
+        take: input.take || 20
+      });
+
+      const hasMore = (input.skip || 0) + projects.length < total;
+
+      return { projects, total, hasMore };
+    } catch {
+      return { projects: [], total: 0, hasMore: false };
+    }
+  }
+
+  async _getByFileHash(input: { fileHash: string }): Promise<Project[]> {
+    try {
+      const project = await prisma.project.findUnique({
+        where: { fileHash: input.fileHash }
+      });
+      return project ? [project] : [];
+    } catch {
+      return [];
+    }
+  }
+
+  async ensureProjectOrganizationRelationship(input: {
+    projectId: string;
+    organizationId: string;
+  }): Promise<{ success: boolean; relationship?: any } | { error: string }> {
+    try {
+      // Check if relationship already exists
+      const existingRelationship = await prisma.relationship.findFirst({
+        where: {
+          fromEntityType: 'project',
+          fromEntityId: input.projectId,
+          toEntityType: 'organization',
+          toEntityId: input.organizationId,
+          relationType: 'child'
+        }
+      });
+
+      if (existingRelationship) {
+        return { success: true, relationship: existingRelationship };
+      }
+
+      // Create the relationship
+      const relationship = await prisma.relationship.create({
+        data: {
+          fromEntityType: 'project',
+          fromEntityId: input.projectId,
+          toEntityType: 'organization',
+          toEntityId: input.organizationId,
+          relationType: 'child',
+          metadata: {
+            addedAt: new Date().toISOString(),
+            reason: 'file_upload_association'
+          }
+        }
+      });
+
+      return { success: true, relationship };
+    } catch (error) {
+      return { error: `Failed to create project-organization relationship: ${error}` };
     }
   }
 }

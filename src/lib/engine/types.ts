@@ -18,7 +18,8 @@ export interface ActionPattern {
 
 interface SyncDeclaration {
     when: ActionPattern[];
-    where?: (frames: Frames) => Frames;
+    // Support async where-clauses to allow concept queries
+    where?: (frames: Frames) => Frames | Promise<Frames>;
     then: ActionPattern[];
 }
 

@@ -27,6 +27,7 @@ const getDifficultyColor = (difficulty: string) => {
 interface ProjectForModal {
   id: string;
   title: string;
+  image: string;
   description: string;
   industry: string;
   domain: string;
@@ -71,6 +72,7 @@ export default function HomePage() {
     const fullProject = {
       id: project.title.toLowerCase().replace(/\s+/g, '-'),
       title: project.title,
+      image: project.image,
       description: project.summary,
       industry: 'Technology',
       domain: 'Software Development',
@@ -440,11 +442,11 @@ export default function HomePage() {
                 className="group bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl shadow-lg hover:shadow-2xl hover:bg-white/20 transition-all duration-300 cursor-pointer overflow-hidden h-96 flex flex-col mx-2"
                 onClick={() => handleProjectClick(project)}
               >
-                <div className="relative h-48 overflow-hidden">
+                <div className="relative h-40 overflow-hidden flex-shrink-0">
                   <img
                     src={project.image || getProjectImage('technology', 'software')}
                     alt={project.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   
                   {/* Difficulty indicator */}
@@ -468,7 +470,7 @@ export default function HomePage() {
                     {project.title}
                   </h3>
                   <p className="text-sm text-purple-100 mb-4 flex-1 line-clamp-3">
-                    {project.summary}
+                    {project.description}
                   </p>
                   
                   <div className="mt-auto space-y-3">

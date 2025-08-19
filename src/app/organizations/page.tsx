@@ -20,7 +20,7 @@ export default function OrganizationsPage() {
     // If user is loaded and doesn't have admin permissions, redirect to home
     if (!isLoading && user) {
       const isAdmin = hasRole(ROLES.PLATFORM_ADMIN) || 
-                     hasRole(ROLES.ORG_ADMIN);
+                     hasRole(ROLES.MANAGER);
       
       if (!isAdmin) {
         router.push('/');
@@ -42,7 +42,7 @@ export default function OrganizationsPage() {
 
   // Only admins should see organization management
   const isAdmin = hasRole(ROLES.PLATFORM_ADMIN) || 
-                 hasRole(ROLES.ORG_ADMIN);
+                 hasRole(ROLES.MANAGER);
 
   if (isAdmin) {
     return <AdminPage />;

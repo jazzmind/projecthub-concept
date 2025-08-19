@@ -20,11 +20,11 @@ export default function TeamsPage() {
     // If user is loaded and doesn't have manager permissions, redirect to projects
     if (!isLoading && user) {
       const isManager = hasRole(ROLES.PLATFORM_ADMIN) || 
-                       hasRole(ROLES.ORG_ADMIN) || 
+                       hasRole(ROLES.MANAGER) || 
                        hasRole(ROLES.EDUCATOR) ||
                        hasRole(ROLES.EXPERT) ||
-                       hasRole(ROLES.INDUSTRY_PARTNER) ||
-                       hasRole(ROLES.TEAM_LEADER);
+                       hasRole(ROLES.PROVIDER) ||
+                       hasRole(ROLES.LEARNER);
       
       if (!isManager) {
         router.push('/projects');
@@ -46,11 +46,11 @@ export default function TeamsPage() {
 
   // Only managers and team leaders should see team management
   const isManager = hasRole(ROLES.PLATFORM_ADMIN) || 
-                   hasRole(ROLES.ORG_ADMIN) || 
+                   hasRole(ROLES.MANAGER) || 
                    hasRole(ROLES.EDUCATOR) ||
                    hasRole(ROLES.EXPERT) ||
-                   hasRole(ROLES.INDUSTRY_PARTNER) ||
-                   hasRole(ROLES.TEAM_LEADER);
+                   hasRole(ROLES.PROVIDER) ||
+                   hasRole(ROLES.LEARNER);
 
   if (isManager) {
     return <ManagerPage />;

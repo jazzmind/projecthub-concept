@@ -17,7 +17,7 @@ export class APIConcept {
     params?: object;
     query?: object;
     userId?: string;
-    sessionId?: string;
+    session?: any;
   }): Promise<{ request: APIRequest } | { error: string }> {
     try {
       // Validate method
@@ -61,7 +61,7 @@ export class APIConcept {
         ? (input as any).requestId
         : ((input as any).requestId?.id ?? String((input as any).requestId));
 
-      console.log('[DEBUG] API.respond input body:', input.body);
+      //console.log('[DEBUG] API.respond input body:', input.body);
 
       const response = await prisma.aPIResponse.create({
         data: {

@@ -7,7 +7,7 @@ export function makeProjectExtractionSyncs(API: any, Project: any, Membership: a
   const ExtractProjectFromDocument = (vars: Vars) => {
     const { request } = vars;
     return {
-      when: actions([API.request as any, { method: "POST", path: "/api/projects/extract" }]),
+      when: actions([API.request as any, { method: "POST", path: "/api/project/extract" }]),
       then: actions([Project.extractFromDocument, { 
         fileBuffer: request,
         originalFilename: request, 

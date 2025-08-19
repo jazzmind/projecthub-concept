@@ -29,7 +29,7 @@ jest.mock('@prisma/client', () => {
     fromEntityId: 'project-123',
     toEntityType: 'organization',
     toEntityId: 'org-456',
-    relationType: 'belongs_to',
+    relationType: 'child',
     metadata: {},
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -86,7 +86,7 @@ describe('Project-Organization Relationships', () => {
       fromEntityId: 'project-123',
       toEntityType: 'organization',
       toEntityId: 'org-456',
-      relationType: 'belongs_to',
+      relationType: 'child',
       metadata: {},
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -154,7 +154,7 @@ describe('Project-Organization Relationships', () => {
         fromEntityId: 'project-123',
         toEntityType: 'organization',
         toEntityId: 'org-456',
-        relationType: 'belongs_to',
+        relationType: 'child',
         metadata: {
           createdBy: 'ai_extraction',
           sourceFile: 'test-project.docx'
@@ -172,7 +172,7 @@ describe('Project-Organization Relationships', () => {
         fromEntityType: 'project',
         toEntityType: 'organization',
         toEntityId: 'org-456',
-        relationType: 'belongs_to'
+        relationType: 'child'
       }
     });
   });

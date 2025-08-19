@@ -3,31 +3,6 @@ import { prisma } from "@/lib/prisma";
 
 export class OrganizationConcept {
 
-  // List top-level organizations (action form for sync engine)
-  async listTopLevel(input: {} = {}): Promise<{ organizations: Organization[] } | { error: string }> {
-    try {
-      const orgs = await prisma.organization.findMany({
-        where: { isActive: true } // Get all active organizations
-      });
-      
-      return { 
-        organizations: orgs
-      };
-    } catch (error) {
-      return { error: `Failed to list organizations: ${error}` };
-    }
-  }
-
-  // Get organization by id (action form for API syncs)
-  async getById(input: { id: string }): Promise<{ organization: Organization | null } | { error: string }> {
-    try {
-      const org = await prisma.organization.findUnique({ where: { id: input.id } });
-      return { organization: org };
-    } catch (error) {
-      return { error: `Failed to get organization: ${error}` };
-    }
-  }
-
   async create(input: {
     name: string;
     description: string;
@@ -172,6 +147,18 @@ export class OrganizationConcept {
     try {
       const orgs = await prisma.organization.findMany({
         where: { organizationType: input.type }
+      });
+      return orgs;
+    } catch {
+      return [];
+    }
+  }
+
+  async _getAll(input: {} = {}): Promise<Organization[]> {
+    try {
+      const orgs = await prisma.organization.findMany({
+        where: { isActive: true },
+        orderBy: { name: 'asc' }
       });
       return orgs;
     } catch {

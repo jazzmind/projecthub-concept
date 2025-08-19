@@ -1,6 +1,6 @@
 export interface DemoProjectSpec {
   title: string;
-  summary: string;
+  description: string;
   tags: string[];
   image: string;
 }
@@ -8,37 +8,37 @@ export interface DemoProjectSpec {
 export const demoProjects: DemoProjectSpec[] = [
   {
     title: "AI Customer Support Assistant",
-    summary: "Build an AI assistant that answers customer questions using RAG and tool-use.",
+    description: "Build an AI assistant that answers customer questions using RAG and tool-use.",
     tags: ["NLP", "RAG", "Agents"],
     image: "/images/projects/customer-support.jpg",
   },
   {
     title: "Churn Prediction Dashboard",
-    summary: "Predict churn and visualize risk cohorts with explainable features.",
+    description: "Predict churn and visualize risk cohorts with explainable features.",
     tags: ["ML", "XGBoost", "Analytics"],
     image: "/images/projects/churn-prediction.jpg",
   },
   { 
     title: "Sustainability Footprint Tracker",
-    summary: "Track and report product-level emissions with supplier attestations.",
+    description: "Track and report product-level emissions with supplier attestations.",
     tags: ["Sustainability", "Supply Chain", "Data"], 
     image: "/images/projects/sustainability.jpg",
   },
   {
     title: "Resume Screening Copilot",
-    summary: "Rank candidates against job criteria and surface strengths & gaps.",
+    description: "Rank candidates against job criteria and surface strengths & gaps.",
     tags: ["HR Tech", "Embeddings", "LLM"],
     image: "/images/projects/resume-screening.jpg",
   },
   {
     title: "Smart Document Q&A",
-    summary: "Ask questions over policy PDFs with chunking, reranking, and citations.",
+    description: "Ask questions over policy PDFs with chunking, reranking, and citations.",
     tags: ["RAG", "Citations", "Search"],
     image: "/images/projects/smart-document-qa.jpg",
   },
   {
     title: "Marketing Creative Generator",
-    summary: "Generate on-brand assets across channels with approval workflows.",
+    description: "Generate on-brand assets across channels with approval workflows.",
     tags: ["GenAI", "Brand", "Automation"],
     image: "/images/projects/marketing-creative-generator.jpg",
   },

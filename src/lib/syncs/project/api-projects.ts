@@ -5,7 +5,7 @@ import { UserConcept } from "@/lib/concepts/common/user";
 import { MembershipConcept } from "@/lib/concepts/common/membership";
 import { RoleConcept } from "@/lib/concepts/common/role";
 import { SessionConcept } from "@/lib/concepts/common/session";
-
+import { RelationshipConcept } from "@/lib/concepts/common/relationship";
 /**
  * Project Management Synchronizations
  * 
@@ -15,10 +15,7 @@ import { SessionConcept } from "@/lib/concepts/common/session";
 export function makeApiProjectSyncs(
   API: APIConcept,
   Project: ProjectConcept,
-  User: UserConcept,
-  Membership: MembershipConcept,
-  Role: RoleConcept,
-  Session: SessionConcept,
+  Relationship: RelationshipConcept,
 ) {
 
   // Create project with permission check
@@ -266,38 +263,78 @@ export function makeApiProjectSyncs(
     ),
   });
 
-  // List projects
-  const ListProjects = ({ request, payload }: Vars) => ({
-    when: actions(
-      [API.request as any, { 
-        method: "GET", 
-        path: "/api/projects"
-      }, { request }],
-    ),
-    where: (frames: Frames) => {
-      const result = new Frames();
-      for (const frame of frames) {
-        // Simplified - would get published projects
-        const projects: any[] = [];
-        const requestObj = (frame as any)[request];
-        result.push({
-          ...(frame as any),
-          [payload]: {
-            projects: projects,
-            requestId: requestObj?.id || requestObj
-          }
-        } as any);
-      }
-      return result;
-    },
-    then: actions(
-      [API.respond as any, { 
-        requestId: request,
-        status: 200,
-        body: (payload as unknown) as symbol
-      }],
-    ),
-  });
+  // List projects for a given organization
+  // projects are connected to an organization via a relationship
+  // fromEntityType: "project" toEntityType: "organization" relationship: "child"
+  // get all the related projects for the organization
+  // const getProjectsForOrganization = ({ request, organizationId, projectIds, payload }: Vars) => ({
+  //   when: actions(
+  //     [API.request as any, { 
+  //       method: "GET", 
+  //       path: "/api/projects/organization/:organizationId"
+  //     }, { request }],
+  //   ),
+  //   then: actions(
+  //     [Relationship._getChildren as any, { parentEntityType: "organization", parentEntityId: organizationId, childEntityType: "project" }, { projectIds }],
+  //   ),
+  // });
+
+  // const ListProjects = ({ request, organizationId, projectIds, payload }: Vars) => ({
+  //   when: actions(
+  //     [API.request as any, { 
+  //       method: "GET", 
+  //       path: "/api/projects"
+  //     }, { request }],
+  //     [Relationship._getChildren as any, { parentEntityType: "organization", parentEntityId: organizationId, childEntityType: "project" }],
+  //   ),
+  //   where: async (frames: Frames) => {
+  //     return frames.map((frame) => {
+  //       const projects = (frame as any)[projectIds];
+        
+  //       // Build response body here to avoid nested symbol resolution
+  //       const bodyData = { projects };
+        
+  //       return {
+  //           ...frame,
+  //           [requestId]: (frame as any)[request]?.id,
+  //           [responseBody]: bodyData,  // Top-level symbol
+  //       };
+  //   });
+  //   },
+  //   then: actions(
+  //     [Project._getByIds as any, { id: projectIds }]),
+  // });
+
+  // // List projects response
+  // const ListProjectsResponse = ({ request, payload }: Vars) => ({
+  //   when: actions(
+  //     [API.request as any, { 
+  //       method: "GET", 
+  //       path: "/api/projects"
+  //     }, { request }],
+  //   ),
+  //   where: (frames: Frames) => {
+  //     const result = new Frames();
+  //     for (const frame of frames) {
+  //       const projects: any[] = [];
+  //       result.push({
+  //         ...(frame as any),
+  //         [payload]: {
+  //           projects: projects,
+  //           requestId: request
+  //         }
+  //       } as any);
+  //     }
+  //     return result;
+  //   },
+  //   then: actions(
+  //     [API.respond as any, { 
+  //       requestId: request,
+  //       status: 200,
+  //       body: (payload as unknown) as symbol
+  //     }],
+  //   ),
+  // });
 
   // Search projects
   const SearchProjects = ({ request, keywords, payload }: Vars) => ({
@@ -367,7 +404,7 @@ export function makeApiProjectSyncs(
     PublishProject,
     ArchiveProject,
     GetProject,
-    ListProjects,
+    //ListProjects,
     SearchProjects,
     GetProjectsByIndustry,
   } as const;

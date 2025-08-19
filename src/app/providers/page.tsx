@@ -31,10 +31,10 @@ export default function ProvidersPage() {
 
   // Check if user has management permissions
   const isManager = hasRole(ROLES.PLATFORM_ADMIN) || 
-                   hasRole(ROLES.ORG_ADMIN) || 
+                   hasRole(ROLES.MANAGER) || 
                    hasRole(ROLES.EDUCATOR) ||
                    hasRole(ROLES.EXPERT) ||
-                   hasRole(ROLES.INDUSTRY_PARTNER);
+                   hasRole(ROLES.PROVIDER);
 
   if (isManager) {
     return <ManagerPage />;

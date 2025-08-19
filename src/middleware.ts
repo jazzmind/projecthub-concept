@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Simple page RBAC map using role names resolved via Better Auth heuristics on the server
+// Middleware remains minimal: it only checks for presence of session cookie; page-level
+// role gating is implemented in server components/layouts for precision.
+// If desired, uncomment and tighten here.
+const PAGE_ROLE_MAP: Array<{ pattern: RegExp; roles: string[] }> = [
+  // { pattern: /^\/organizations(\/.*)?$/, roles: ['platform_admin', 'manager'] },
+  // { pattern: /^\/campaigns(\/.*)?$/, roles: ['platform_admin', 'manager', 'educator'] },
+  // { pattern: /^\/projects(\/.*)?$/, roles: ['platform_admin', 'manager', 'educator'] },
+];
+
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   
@@ -42,6 +52,17 @@ export function middleware(request: NextRequest) {
   if (!sessionToken) {
     console.log(`❌ Redirecting ${pathname} to /login - no session`);
     return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  // Optional: enforce coarse role gating by reading a hint from a header if upstream set it.
+  // We avoid DB lookups here to keep edge fast. Fine-grained checks belong in server handlers.
+  for (const rule of PAGE_ROLE_MAP) {
+    if (rule.pattern.test(pathname)) {
+      const roleHeader = request.headers.get('x-role') || '';
+      if (!rule.roles.includes(roleHeader)) {
+        return NextResponse.redirect(new URL('/login', request.url));
+      }
+    }
   }
 
   console.log(`✅ Allowing access to ${pathname}`);

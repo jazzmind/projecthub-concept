@@ -49,6 +49,38 @@ export interface BetterAuthSession {
 
 export class AuthBridge {
   /**
+   * Build a minimal initial user object from a header-based session
+   * Used by server components (e.g., layout) to pre-hydrate client AuthProvider
+   */
+  static async getInitialUserFromHeaderObject(h: Record<string, string>): Promise<any | null> {
+    try {
+      const plain = new Headers(h);
+      const session: any = await auth.api.getSession({ headers: plain });
+      if (!session) return null;
+      // Prefer fields provided by customSession plugin (currentContext, effectiveRole)
+      const currentContext = session.currentContext ?? {};
+      const effectiveRole = session.effectiveRole ?? {
+        name: 'guest',
+        displayName: 'Guest',
+        scope: 'public',
+        permissions: {},
+      };
+
+      return {
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.name,
+        isActive: true,
+        currentContext,
+        effectiveRole,
+        availableOrganizations: session.availableOrganizations ?? [],
+      };
+    } catch (error) {
+      console.error('Error building initial user from headers:', error);
+      return null;
+    }
+  }
+  /**
    * Get Better Auth session for a Request
    *
    * Async because it calls Better Auth APIs which may hit DB/crypto.
@@ -58,7 +90,7 @@ export class AuthBridge {
   static async getBetterAuthSession(request: Request): Promise<BetterAuthSession | null> {
     try {
       const session = await auth.api.getSession({ headers: request.headers });
-      return session;
+      return session as BetterAuthSession;
     } catch (error) {
       console.error('Error getting better-auth session:', error);
       return null;
@@ -76,90 +108,13 @@ export class AuthBridge {
       // Convert to a plain Headers instance to avoid dynamic headers() constraints
       const plain = new Headers(h);
       const session = await auth.api.getSession({ headers: plain });
-      return session;
+      return session as BetterAuthSession;
     } catch (error) {
       console.error('Error getting session from header object:', error);
       return null;
     }
   }
 
-  /**
-   * Build a minimal initial user object from a header-based session
-   *
-   * Used by server components/pages to pre-hydrate auth state before the
-   * client-side provider fetches the richer user from sync endpoints.
-   *
-   * Note: Role derivation here is a heuristic based on environment variables:
-   *   - ADMIN_USERS: explicit platform admins
-   *   - AUTO_REGISTER_DOMAIN: users from this domain treated as "manager"
-   * The full RBAC model (roles, scopes, contexts, permissions) is established
-   * by synchronizations and concept state. See `docs/RBAC-EXAMPLE.md` and
-   * `src/lib/server.ts` for the authoritative flow.
-   */
-  static async getInitialUserFromHeaderObject(h: Record<string, string>): Promise<any | null> {
-    const session = await AuthBridge.getSessionFromHeaderObject(h);
-    if (!session) return null;
-    const userEmail = session.user.email?.toLowerCase() || '';
-    const adminUsers = (process.env.ADMIN_USERS || '')
-      .split(',')
-      .map((e) => e.trim().toLowerCase())
-      .filter(Boolean);
-    const autoDomain = (process.env.AUTO_REGISTER_DOMAIN || '').toLowerCase();
-
-    let roleName: 'platform_admin' | 'manager' | 'guest' = 'guest';
-    if (userEmail && adminUsers.includes(userEmail)) {
-      roleName = 'platform_admin';
-    } else if (autoDomain && userEmail.endsWith(`@${autoDomain}`)) {
-      roleName = 'manager';
-    }
-
-    const roleDefs: Record<string, { displayName: string; scope: string; permissions: Record<string, any> }> = {
-      platform_admin: {
-        displayName: 'Platform Admin',
-        scope: 'platform',
-        permissions: {
-          organizations: { create: true, read: true, update: true, delete: true, manage_members: true },
-          campaigns: { create: true, read: true, update: true, delete: true, publish: true },
-          projects: { create: true, read: true, update: true, delete: true, assign: true },
-          teams: { create: true, read: true, update: true, delete: true, manage_members: true },
-          profiles: { create: true, read: true, update: true, delete: true, verify: true },
-          users: { read: true, update: true },
-        },
-      },
-      manager: {
-        displayName: 'Manager',
-        scope: 'organization',
-        permissions: {
-          organizations: { read: true, update: true, manage_members: true },
-          campaigns: { create: true, read: true, update: true, publish: true },
-          projects: { create: true, read: true, update: true, assign: true },
-          teams: { create: true, read: true, update: true, manage_members: true },
-          profiles: { read: true, update: true, delete: true, verify: true },
-          users: { read: true, update: true, delete: true },
-        },
-      },
-      guest: {
-        displayName: 'Guest',
-        scope: 'public',
-        permissions: {},
-      },
-    };
-    const selectedRole = roleDefs[roleName] || roleDefs.guest;
-    return {
-      id: session.user.id,
-      email: session.user.email,
-      name: session.user.name,
-      isActive: true,
-      currentContext: {},
-      effectiveRole: {
-        name: roleName,
-        displayName: selectedRole.displayName,
-        scope: selectedRole.scope,
-        permissions: selectedRole.permissions,
-      },
-      availableContexts: []
-    };
-  }
 
   /**
    * Extract a session key from cookies or Authorization header

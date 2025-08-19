@@ -186,8 +186,19 @@ export default function FileDropZone({
                   } else if (data.type === 'error') {
                     throw new Error(`Failed to process ${file.name}: ${data.error}`);
                   } else if (data.type === 'success') {
-                    // File processed successfully
-                    console.log(`Successfully processed ${file.name}:`, data.project);
+                    if (data.wasExisting) {
+                    console.log(`Found existing project for ${file.name}:`, data.project.title);
+                    setUploadState(prev => ({
+                        ...prev,
+                        currentFile: `${file.name} - Found existing project: ${data.project.title}`
+                    }));
+                    } else {
+                        console.log(`Successfully created project from ${file.name}:`, data.project.title);
+                        setUploadState(prev => ({
+                            ...prev,
+                            currentFile: `${file.name} - Created project: ${data.project.title}`
+                        }));
+                    }
                   }
                 } catch (parseError) {
                   console.warn('Failed to parse streaming response:', parseError);

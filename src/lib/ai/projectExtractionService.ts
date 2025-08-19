@@ -3,7 +3,7 @@ import { MODELS } from './models';
 import { openaiFileService } from './openaiFileService';
 import { z } from 'zod';
 import mammoth from 'mammoth';
-
+import { put } from '@vercel/blob';
 /**
  * Schema for extracted project data
  */
@@ -228,7 +228,14 @@ export class ProjectExtractionService extends AIService {
       }
 
       this.log(`Successfully generated image for: ${projectTitle}`);
-      return imageUrl;
+
+      // now upload the image to vercel blob storage
+      const blob = await fetch(imageUrl).then(res => res.blob());
+      const blobUrl = await put(projectTitle, blob, {
+        access: 'public',
+        addRandomSuffix: true,
+      });
+      return blobUrl.url;
 
     } catch (error) {
       this.log(`Error generating image for ${projectTitle}: ${error}`, 'error');

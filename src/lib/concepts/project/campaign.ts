@@ -3,34 +3,6 @@ import { prisma } from "@/lib/prisma";
 
 export class CampaignConcept {
 
-  async listActive(): Promise<{ campaigns: Campaign[] } | { error: string }> {
-    try {
-      const campaigns = await prisma.campaign.findMany({ where: { status: "active" } });
-      return { campaigns };
-    } catch (error) {
-      return { error: `Failed to list active campaigns: ${error}` };
-    }
-  }
-
-  async listAll(): Promise<{ campaigns: Campaign[] } | { error: string }> {
-    try {
-      const campaigns = await prisma.campaign.findMany({});
-      return { campaigns };
-    } catch (error) {
-      return { error: `Failed to list campaigns: ${error}` };
-    }
-  }
-
-  async get(input: { id: string }): Promise<{ campaign: Campaign } | { error: string }> {
-    try {
-      const found = await prisma.campaign.findFirst({ where: { id: input.id } });
-      if (!found) return { error: "Campaign not found" };
-      return { campaign: found };
-    } catch (error) {
-      return { error: `Failed to get campaign: ${error}` };
-    }
-  }
-
   async create(input: {
     name: string;
     description: string;

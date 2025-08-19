@@ -10,6 +10,7 @@ import { ProjectConcept } from "@/lib/concepts/project/project";
 import { UserConcept } from "@/lib/concepts/common/user";
 import { RoleConcept } from "@/lib/concepts/common/role";
 import { MembershipConcept } from "@/lib/concepts/common/membership";
+import { AuthConcept } from "@/lib/concepts/common/auth";
 import { SessionConcept } from "@/lib/concepts/common/session";
 //import { SkillConcept } from "@/lib/concepts/wip/skill";
 import { RelationshipConcept } from "@/lib/concepts/common/relationship";
@@ -62,7 +63,7 @@ import {
 
 // Initialize sync engine with debugging
 const Sync = new SyncConcept();
-Sync.logging = Logging.TRACE; // Detailed action tracing (see docs/debugging.md)
+  //Sync.logging = Logging.VERBOSE; // Detailed action tracing (see docs/debugging.md)
 
 // Register concepts
 const concepts = {
@@ -76,6 +77,7 @@ const concepts = {
   User: new UserConcept(),
   Role: new RoleConcept(),
   Membership: new MembershipConcept(),
+  Auth: new AuthConcept(),
   Session: new SessionConcept(),
   //Skill: new SkillConcept(),
   Relationship: new RelationshipConcept(),
@@ -89,16 +91,16 @@ const concepts = {
 // Instrument for reactivity
 // Instrumentation wraps action methods so the engine can observe invocations,
 // assign flow tokens, and trigger synchronizations automatically.
-const { API, Organization, Campaign, Team, Profile, Project, User, Role, Membership, Session, Relationship } = Sync.instrument(concepts);
+const { API, Organization, Campaign, Team, Profile, Project, User, Role, Membership, Session, Relationship, Auth } = Sync.instrument(concepts);
 
 // Register synchronizations
 // Each `make*Syncs` returns a map of sync functions that connect concept actions
 // into end-to-end workflows (e.g., API.request -> domain action -> API.response).
-const authSyncs = makeAuthSyncs(API, User, Session, Membership, Role, Organization);
+const authSyncs = makeAuthSyncs(API, User, Session, Membership, Role, Organization, Auth);
 const orgSyncs = makeApiOrganizationSyncs(API, Organization, User, Membership, Role, Session);
 const teamSyncs = makeApiTeamSyncs(API, Team, User, Membership, Role, Session);
 const campaignSyncs = makeApiCampaignSyncs(API, Campaign);
-const projectSyncs = makeApiProjectSyncs(API, Project, User, Membership, Role, Session);
+const projectSyncs = makeApiProjectSyncs(API, Project, Relationship);
 //const skillSyncs = makeApiSkillSyncs(API, Skill);
 const relationshipSyncs = makeApiRelationshipSyncs(API, Relationship);
 const rbacSyncs = makeHierarchicalRBACsyncs(API, User, Role, Membership, Session, Organization, Campaign, Project, Team);

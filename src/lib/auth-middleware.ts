@@ -54,7 +54,7 @@ export const ROUTE_CONFIGS: RouteConfig[] = [
     path: '/organizations/create', 
     requiresAuth: true,
     requiredPermissions: [PERMISSIONS.ORGANIZATIONS.CREATE],
-    requiredRoles: [ROLES.PLATFORM_ADMIN, ROLES.ORG_ADMIN]
+    requiredRoles: [ROLES.PLATFORM_ADMIN, ROLES.MANAGER]
   },
   { 
     path: '/campaigns', 
@@ -65,7 +65,7 @@ export const ROUTE_CONFIGS: RouteConfig[] = [
     path: '/campaigns/create', 
     requiresAuth: true,
     requiredPermissions: [PERMISSIONS.CAMPAIGNS.CREATE],
-    requiredRoles: [ROLES.ORG_ADMIN, ROLES.EDUCATOR]
+    requiredRoles: [ROLES.MANAGER, ROLES.EDUCATOR]
   },
   { 
     path: '/projects', 
@@ -76,7 +76,7 @@ export const ROUTE_CONFIGS: RouteConfig[] = [
     path: '/projects/create', 
     requiresAuth: true,
     requiredPermissions: [PERMISSIONS.PROJECTS.CREATE],
-    requiredRoles: [ROLES.ORG_ADMIN, ROLES.EDUCATOR]
+    requiredRoles: [ROLES.MANAGER, ROLES.EDUCATOR]
   },
   { 
     path: '/teams', 
@@ -244,20 +244,38 @@ export async function requirePermission(
   error?: string;
 }> {
   const authResult = await requireAuth(request);
-  
-  if (!authResult.user) {
-    return { user: null, hasPermission: false, error: authResult.error };
+  if (!authResult.user) return { user: null, hasPermission: false, error: authResult.error };
+
+  // Read current context from Prisma session (RBAC source of truth)
+  try {
+    const { prisma } = await import('@/lib/prisma');
+    // Try to extract session token similarly as middleware
+    const cookie = (request as any).headers.get('cookie') || '';
+    const match = cookie.match(/better-auth\.session_token=([^;]+)/);
+    const sessionKey = match ? match[1] : undefined;
+    let context: any = {};
+    if (sessionKey) {
+      const s = await prisma.session.findFirst({ where: { sessionKey } });
+      if (s?.currentContext) {
+        try { context = JSON.parse(s.currentContext); } catch {}
+      }
+    }
+
+    // Simple example: if resource is organizations and action update, require currentRole admin/manager
+    const role = context.currentRole || 'guest';
+    const allow = (() => {
+      if (role === 'platform_admin') return true;
+      if (resource === 'organizations' && ['read'].includes(action)) return true;
+      if (resource === 'campaigns' && ['read'].includes(action)) return true;
+      if (resource === 'projects' && ['read'].includes(action)) return true;
+      if (resource === 'organizations' && ['create','update','delete','manage_members'].includes(action)) return role === 'manager';
+      return false;
+    })();
+
+    return { user: authResult.user, hasPermission: allow, error: allow ? undefined : 'Insufficient permissions' };
+  } catch (e) {
+    return { user: authResult.user, hasPermission: false, error: 'Permission check failed' };
   }
-  
-  // Lazy import the bridge
-  const { AuthBridge } = await import('@/lib/auth-bridge');
-  const hasPermission = await AuthBridge.hasPermission(request, resource, action);
-  
-  return {
-    user: authResult.user,
-    hasPermission,
-    error: hasPermission ? undefined : 'Insufficient permissions'
-  };
 }
 
 /**

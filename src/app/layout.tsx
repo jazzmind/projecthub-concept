@@ -37,23 +37,3 @@ export default async function RootLayout({
   )
 }
 
-
-export async function ManagerLayout({ children }: { children: React.ReactNode }) {
-  const h = await headers()
-  const plain: Record<string, string> = Object.fromEntries((h as any).entries())
-  const initialUser = await AuthBridge.getInitialUserFromHeaderObject(plain)
-
-  // Require authentication
-  if (!initialUser) {
-    redirect('/')
-  }
-
-  // Require admin/manager role
-  const role = initialUser.effectiveRole?.name
-  const allowed = role === 'platform_admin' || role === 'manager'
-  if (!allowed) {
-    redirect('/')
-  }
-
-  return <>{children}</>
-}

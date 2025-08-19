@@ -20,10 +20,9 @@ export default function DashboardPage() {
     // If user is loaded and is not a manager, redirect to projects
     if (!isLoading && user) {
       const isManager = hasRole(ROLES.PLATFORM_ADMIN) || 
-                       hasRole(ROLES.ORG_ADMIN) || 
                        hasRole(ROLES.EDUCATOR) ||
                        hasRole(ROLES.EXPERT) ||
-                       hasRole(ROLES.INDUSTRY_PARTNER);
+                       hasRole(ROLES.PROVIDER);
       
       if (!isManager) {
         router.push('/projects');
@@ -45,10 +44,9 @@ export default function DashboardPage() {
 
   // Only managers should see dashboard
   const isManager = hasRole(ROLES.PLATFORM_ADMIN) || 
-                   hasRole(ROLES.ORG_ADMIN) || 
                    hasRole(ROLES.EDUCATOR) ||
                    hasRole(ROLES.EXPERT) ||
-                   hasRole(ROLES.INDUSTRY_PARTNER);
+                   hasRole(ROLES.PROVIDER);
 
   if (isManager) {
     return <ManagerPage />;
