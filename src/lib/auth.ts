@@ -24,7 +24,7 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days
-    updateAge: 60 * 60 * 24, // 1 day
+    updateAge: 60 * 30, // 30 minutes (reduced from 1 day for more frequent refresh)
     cookieCache: {
       enabled: true,
       maxAge: 60 * 30, // 30 minutes (increased from 5 minutes)
