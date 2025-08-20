@@ -172,12 +172,7 @@ export default function ProjectDetailModal({ project, isOpen, onClose, onUpdated
                   ) : showEditButton ? (
                     // Manager mode - show Start Project and Edit buttons
                     <>
-                      <button className="px-8 py-3 bg-white text-black font-semibold rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center gap-2">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z"/>
-                        </svg>
-                        Start Project
-                      </button>
+                
                       {!isEditing ? (
                         <button onClick={startEdit} className="px-6 py-3 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/50 transition-colors duration-200 backdrop-blur-sm">
                           Edit
@@ -208,7 +203,7 @@ export default function ProjectDetailModal({ project, isOpen, onClose, onUpdated
                   <h2 className="text-2xl font-bold mb-4">Project Overview</h2>
                   {isEditing ? (
                     <textarea
-                      className="w-full text-gray-900 bg-gray-800 dark:bg-gray-700 dark:text-white rounded-md px-3 py-2 border border-gray-600"
+                      className="w-full text-gray-900 bg-gray-800 dark:bg-gray-700 text-white rounded-md px-3 py-2 border border-gray-600"
                       rows={4}
                       value={String(form.description ?? project.description)}
                       onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
@@ -223,7 +218,7 @@ export default function ProjectDetailModal({ project, isOpen, onClose, onUpdated
                     <h3 className="text-xl font-semibold mb-3">Scope</h3>
                     {isEditing ? (
                       <textarea
-                        className="w-full text-gray-900 bg-gray-800 dark:bg-gray-700 dark:text-white rounded-md px-3 py-2 border border-gray-600"
+                        className="w-full text-gray-900 bg-gray-800 dark:bg-gray-700 text-white rounded-md px-3 py-2 border border-gray-600"
                         rows={3}
                         value={String(form.scope ?? project.scope ?? '')}
                         onChange={(e) => setForm((f) => ({ ...f, scope: e.target.value }))}
@@ -240,7 +235,7 @@ export default function ProjectDetailModal({ project, isOpen, onClose, onUpdated
                     {isEditing ? (
                       <div className="space-y-2">
                         <textarea
-                          className="w-full text-gray-900 bg-gray-800 dark:bg-gray-700 dark:text-white rounded-md px-3 py-2 border border-gray-600"
+                          className="w-full text-gray-900 bg-gray-800 dark:bg-gray-700 text-white rounded-md px-3 py-2 border border-gray-600"
                           rows={3}
                           value={(form.learningObjectives ?? project.learningObjectives ?? []).join('\n')}
                           onChange={(e) => setForm((f) => ({ ...f, learningObjectives: e.target.value.split('\n').filter(Boolean) }))}
@@ -264,7 +259,7 @@ export default function ProjectDetailModal({ project, isOpen, onClose, onUpdated
                   <h3 className="text-xl font-semibold mb-4">Deliverables</h3>
                   {isEditing ? (
                     <textarea
-                      className="w-full text-gray-900 bg-gray-800 dark:bg-gray-700 dark:text-white rounded-md px-3 py-2 border border-gray-600"
+                      className="w-full text-gray-900 bg-gray-800 dark:bg-gray-700 text-white rounded-md px-3 py-2 border border-gray-600"
                       rows={4}
                       value={(form.deliverables ?? project.deliverables ?? []).join('\n')}
                       onChange={(e) => setForm((f) => ({ ...f, deliverables: e.target.value.split('\n').filter(Boolean) }))}
@@ -290,7 +285,7 @@ export default function ProjectDetailModal({ project, isOpen, onClose, onUpdated
                       <div className="text-sm text-gray-400 mb-1">Status</div>
                       {isEditing ? (
                         <select
-                          className="w-full text-gray-900 bg-gray-800 dark:bg-gray-700 dark:text-white rounded-md px-3 py-2 border border-gray-600"
+                          className="w-full text-gray-900 bg-gray-800 dark:bg-gray-700 text-white rounded-md px-3 py-2 border border-gray-600"
                           value={String(form.status ?? project.status)}
                           onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
                         >
@@ -314,7 +309,7 @@ export default function ProjectDetailModal({ project, isOpen, onClose, onUpdated
                       {isEditing ? (
                         <input
                           type="number"
-                          className="w-full text-gray-900 bg-gray-800 dark:bg-gray-700 dark:text-white rounded-md px-3 py-2 border border-gray-600"
+                          className="w-full text-gray-900 bg-gray-800 dark:bg-gray-700 text-white rounded-md px-3 py-2 border border-gray-600"
                           value={Number(form.estimatedHours ?? project.estimatedHours)}
                           onChange={(e) => setForm((f) => ({ ...f, estimatedHours: parseInt(e.target.value || '0', 10) }))}
                         />
@@ -327,7 +322,7 @@ export default function ProjectDetailModal({ project, isOpen, onClose, onUpdated
                       <div className="text-sm text-gray-400 mb-1">Industry</div>
                       {isEditing ? (
                         <input
-                          className="w-full text-gray-900 bg-gray-800 dark:bg-gray-700 dark:text-white rounded-md px-3 py-2 border border-gray-600"
+                          className="w-full text-gray-900 bg-gray-800 dark:bg-gray-700 text-white rounded-md px-3 py-2 border border-gray-600"
                           value={String(form.industry ?? project.industry)}
                           onChange={(e) => setForm((f) => ({ ...f, industry: e.target.value }))}
                         />
@@ -340,7 +335,7 @@ export default function ProjectDetailModal({ project, isOpen, onClose, onUpdated
                       <div className="text-sm text-gray-400 mb-1">Domain</div>
                       {isEditing ? (
                         <input
-                          className="w-full text-gray-900 bg-gray-800 dark:bg-gray-700 dark:text-white rounded-md px-3 py-2 border border-gray-600"
+                          className="w-full text-gray-900 bg-gray-800 dark:bg-gray-700 text-white rounded-md px-3 py-2 border border-gray-600"
                           value={String(form.domain ?? project.domain)}
                           onChange={(e) => setForm((f) => ({ ...f, domain: e.target.value }))}
                         />
@@ -353,7 +348,7 @@ export default function ProjectDetailModal({ project, isOpen, onClose, onUpdated
                       <div className="text-sm text-gray-400 mb-1">Difficulty</div>
                       {isEditing ? (
                         <select
-                          className="w-full text-gray-900 bg-gray-800 dark:bg-gray-700 dark:text-white rounded-md px-3 py-2 border border-gray-600"
+                          className="w-full text-gray-900 bg-gray-800 dark:bg-gray-700 text-white rounded-md px-3 py-2 border border-gray-600"
                           value={String(form.difficulty ?? project.difficulty)}
                           onChange={(e) => setForm((f) => ({ ...f, difficulty: e.target.value }))}
                         >
@@ -411,6 +406,13 @@ export default function ProjectDetailModal({ project, isOpen, onClose, onUpdated
                       {saving ? 'Saving...' : 'Save Changes'}
                     </button>
                   </>
+                ) : onApplyNow ? (
+                  <button 
+                    onClick={() => onApplyNow(project)} 
+                    className="px-8 py-3 bg-white text-black font-semibold rounded-lg hover:bg-gray-200 transition-colors duration-200"
+                  >
+                    Apply Now
+                  </button>
                 ) : null}
               </div>
             </div>

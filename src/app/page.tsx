@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth, ROLES } from '@/lib/auth-context';
+import { useRouter } from 'next/navigation';
 import Carousel from '@/components/Carousel';
 import ProjectDetailModal from '@/components/ProjectDetailModal';
 import { Project as ProjectType } from '@/types/project';
@@ -37,6 +38,7 @@ interface CategoryForModal {
 
 export default function HomePage() {
   const { user, hasRole } = useAuth();
+  const router = useRouter();
   const [heroProject, setHeroProject] = useState(demoProjects[0]);
   const [selectedProject, setSelectedProject] = useState<ProjectForModal | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -82,6 +84,15 @@ export default function HomePage() {
     };
     setSelectedCategory(enhancedCategory);
     setShowCategoryModal(true);
+  };
+
+  const handleApplyNow = (project: ProjectForModal) => {
+    // Close the modal first
+    setShowDetailModal(false);
+    setSelectedProject(null);
+    
+    // Navigate to projects page (this will trigger sign-in if needed via middleware)
+    router.push('/projects');
   };
 
   const generateSampleProjects = (category: any): string[] => {
@@ -586,10 +597,12 @@ export default function HomePage() {
         <ProjectDetailModal
           project={selectedProject}
           isOpen={showDetailModal}
+          showEditButton={false}
           onClose={() => {
             setShowDetailModal(false);
             setSelectedProject(null);
           }}
+          onApplyNow={handleApplyNow}
         />
       )}
 
