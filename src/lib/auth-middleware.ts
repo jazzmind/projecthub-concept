@@ -94,7 +94,7 @@ export const ROUTE_CONFIGS: RouteConfig[] = [
     requiredPermissions: [PERMISSIONS.PROFILES.READ]
   },
   { 
-    path: '/partners', 
+    path: '/providers', 
     requiresAuth: true,
     requiredPermissions: [PERMISSIONS.PROFILES.READ]
   },

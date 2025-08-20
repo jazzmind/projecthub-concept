@@ -195,7 +195,7 @@ export default function DashboardPage() {
             <a href="/projects/generate" className="btn btn-secondary text-center">
               Generate Project
             </a>
-            <a href="/partners/new" className="btn btn-secondary text-center">
+            <a href="/providers/new" className="btn btn-secondary text-center">
               Add Partner
             </a>
           </div>
