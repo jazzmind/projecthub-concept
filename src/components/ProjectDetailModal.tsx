@@ -1,29 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-
-interface Project {
-  id: string;
-  title: string;
-  image: string;
-  description: string;
-  industry: string;
-  domain: string;
-  difficulty: string;
-  estimatedHours: number;
-  deliverables: string[];
-  status: string;
-  aiGenerated: boolean;
-  createdAt: string;
-  scope?: string;
-  learningObjectives?: string[];
-}
+import { Project } from '@/types/project';
 
 interface ProjectDetailModalProps {
   project: Project | null;
   isOpen: boolean;
   onClose: () => void;
   onUpdated?: (project: Project) => void;
+  showEditButton?: boolean;
+  onApplyNow?: (project: Project) => void;
 }
 
 // Function to get project image based on industry/domain
@@ -42,7 +28,7 @@ const getDifficultyColor = (difficulty: string) => {
   }
 };
 
-export default function ProjectDetailModal({ project, isOpen, onClose, onUpdated }: ProjectDetailModalProps) {
+export default function ProjectDetailModal({ project, isOpen, onClose, onUpdated, showEditButton = true, onApplyNow }: ProjectDetailModalProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -172,26 +158,42 @@ export default function ProjectDetailModal({ project, isOpen, onClose, onUpdated
 
                 {/* Action Buttons */}
                 <div className="flex gap-3 ml-6">
-                  <button className="px-8 py-3 bg-white text-black font-semibold rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center gap-2">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z"/>
-                    </svg>
-                    Start Project
-                  </button>
-                  {!isEditing ? (
-                    <button onClick={startEdit} className="px-6 py-3 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/50 transition-colors duration-200 backdrop-blur-sm">
-                      Edit
+                  {!showEditButton && onApplyNow ? (
+                    // Learner mode - show Apply Now button
+                    <button 
+                      onClick={() => onApplyNow(project)}
+                      className="px-8 py-3 bg-white text-black font-semibold rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                      Apply Now
                     </button>
-                  ) : (
-                    <div className="flex gap-2">
-                      <button onClick={cancelEdit} className="px-6 py-3 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/50 transition-colors duration-200 backdrop-blur-sm">
-                        Cancel
+                  ) : showEditButton ? (
+                    // Manager mode - show Start Project and Edit buttons
+                    <>
+                      <button className="px-8 py-3 bg-white text-black font-semibold rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center gap-2">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z"/>
+                        </svg>
+                        Start Project
                       </button>
-                      <button onClick={saveEdit} disabled={saving} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-lg transition-colors duration-200">
-                        {saving ? 'Saving...' : 'Save'}
-                      </button>
-                    </div>
-                  )}
+                      {!isEditing ? (
+                        <button onClick={startEdit} className="px-6 py-3 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/50 transition-colors duration-200 backdrop-blur-sm">
+                          Edit
+                        </button>
+                      ) : (
+                        <div className="flex gap-2">
+                          <button onClick={cancelEdit} className="px-6 py-3 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-600/50 transition-colors duration-200 backdrop-blur-sm">
+                            Cancel
+                          </button>
+                          <button onClick={saveEdit} disabled={saving} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-lg transition-colors duration-200">
+                            {saving ? 'Saving...' : 'Save'}
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -396,11 +398,11 @@ export default function ProjectDetailModal({ project, isOpen, onClose, onUpdated
               </div>
 
               <div className="flex gap-3">
-                {!isEditing ? (
+                {!isEditing && showEditButton ? (
                   <button onClick={startEdit} className="px-6 py-2 text-gray-400 hover:text-white transition-colors">
                     Edit Project
                   </button>
-                ) : (
+                ) : isEditing ? (
                   <>
                     <button onClick={cancelEdit} className="px-6 py-2 text-gray-400 hover:text-white transition-colors">
                       Cancel
@@ -409,7 +411,7 @@ export default function ProjectDetailModal({ project, isOpen, onClose, onUpdated
                       {saving ? 'Saving...' : 'Save Changes'}
                     </button>
                   </>
-                )}
+                ) : null}
               </div>
             </div>
           </div>

@@ -412,6 +412,47 @@ export class ProjectConcept {
     }
   }
 
+  async _getIndustryCountByOrganization(input: { organizationId: string }): Promise<{ industry: string, count: number }[]> {
+    try {
+      // Get project IDs that belong to the organization via relationships
+      const relationships = await prisma.relationship.findMany({
+        where: {
+          fromEntityType: 'project',
+          toEntityType: 'organization',
+          toEntityId: input.organizationId,
+          relationType: 'child'
+        }
+      });
+
+      const projectIds = relationships.map(rel => rel.fromEntityId);
+
+      if (projectIds.length === 0) {
+        return [];
+      }
+      
+      const projects = await prisma.project.groupBy({
+        by: ['industry'],
+        where: { id: { in: projectIds } },
+        _count: {
+          id: true,
+        },
+        orderBy: {
+          _count: {
+            id: 'desc', // Most projects first
+          },
+        },
+      });
+      console.log("Projects", projects);
+      return projects.map(project => ({
+        industry: project.industry,
+        count: project._count.id
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+
   async _getByFileHash(input: { fileHash: string }): Promise<Project[]> {
     try {
       const project = await prisma.project.findUnique({

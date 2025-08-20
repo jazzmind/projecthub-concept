@@ -3,6 +3,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { emailOTP } from "better-auth/plugins";
 import { customSession } from "better-auth/plugins";
 import { prisma } from "@/lib/prisma";
+import { ROLES } from "./auth-context";
 
 // Better Auth configuration using databaseHooks + customSession
 // - No next-auth style callbacks
@@ -30,7 +31,42 @@ export const auth = betterAuth({
       maxAge: 60 * 30, // 30 minutes (increased from 5 minutes)
     },
   },
-  databaseHooks: {
+  databaseHooks: {  
+     user: {
+      create: {
+        after: async (user) => {
+          // if the user is an admin, add a membership for the user to the default organization
+          // get the domain from the user email
+          const domain = user.email.split("@")[1];
+          // get the organization with the domain
+          const organization = await prisma.organization.findFirst({ where: { domain } });
+          const settings = organization?.settings as { autoRegister?: boolean } | null;
+          if (!settings?.autoRegister && !isAutoRegisterDomain(domain)) {
+            return;
+          }
+          const isAdmin = await isAdminUser(user.email);
+          const role = await prisma.role.findFirst({ where: { displayName: isAdmin ? ROLES.MANAGER : ROLES.GUEST } });
+          if (organization && role) {
+            await prisma.membership.create({
+              data: {
+                memberEntityType: 'user',
+                memberEntityId: user.id,
+                targetEntityType: 'organization',
+                targetEntityId: organization?.id,
+                roleEntityId: role?.id,
+                invitedBy: 'system',
+                invitedAt: new Date(),  
+                approvedBy: 'system',
+                approvedAt: new Date(),
+                status: 'active',
+                isActive: true,
+                joinedAt: new Date(),
+              },
+            });
+          }
+        },
+      },
+  },
     // Ensure a single concept session per user and initialize currentContext
     session: {
       create: {
@@ -210,6 +246,12 @@ export const auth = betterAuth({
 export async function isAdminUser(email: string): Promise<boolean> {
   const adminEmails = (process.env.ADMIN_USERS || "").split(",").map(e => e.trim());
   return adminEmails.includes(email);
+}
+
+// Helper function to check if domain is in autoRegisterDomains
+export async function isAutoRegisterDomain(domain: string): Promise<boolean> {
+  const autoRegisterDomains = (process.env.AUTO_REGISTER_DOMAINS || "").split(",").map(e => e.trim());
+  return autoRegisterDomains.includes(domain);
 }
 
 // Helper function to ensure session context exists for a user

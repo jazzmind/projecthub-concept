@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth, ROLES } from '@/lib/auth-context';
 import Carousel from '@/components/Carousel';
 import ProjectDetailModal from '@/components/ProjectDetailModal';
+import { Project as ProjectType } from '@/types/project';
 import { demoProjects, projectCategories, participatingCompanies } from '@/lib/demo/projects';
 import Link from 'next/link';
 
@@ -24,24 +25,7 @@ const getDifficultyColor = (difficulty: string) => {
 };
 
 
-interface ProjectForModal {
-  id: string;
-  title: string;
-  image: string;
-  description: string;
-  industry: string;
-  domain: string;
-  difficulty: string;
-  estimatedHours: number;
-  requiredSkills: string[];
-  deliverables: string[];
-  status: string;
-  tags: string[];
-  aiGenerated: boolean;
-  createdAt: string;
-  scope: string;
-  learningObjectives: string[];
-}
+interface ProjectForModal extends ProjectType {}
 
 interface CategoryForModal {
   name: string;
@@ -78,10 +62,8 @@ export default function HomePage() {
       domain: 'Software Development',
       difficulty: 'intermediate',
       estimatedHours: 20,
-      requiredSkills: project.tags || ['JavaScript', 'React'],
       deliverables: ['Working prototype', 'Documentation', 'Presentation'],
       status: 'active',
-      tags: project.tags || ['React', 'AI', 'Design'],
       aiGenerated: true,
       createdAt: new Date().toISOString(),
       scope: project.summary,

@@ -201,8 +201,6 @@ async function importProjectBriefs(filePath?: string) {
         const domain = extractDomainFromIndustry(brief.industry);
         const difficulty = determineDifficulty(brief);
         const estimatedHours = estimateHours(brief.duration_weeks);
-        const requiredSkills = extractSkillsFromBrief(brief);
-        const tags = generateTags(brief);
 
         // Prepare learning objectives from focus area
         const learningObjectives = brief.focus_area

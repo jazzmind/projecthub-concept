@@ -5,6 +5,7 @@ export type AuthUserPayload = {
   id: string;
   email: string;
   name: string;
+  image: string;
   isActive: boolean;
   currentContext: { organizationId?: string; campaignId?: string; projectId?: string; teamId?: string };
   effectiveRole: Role | null;
@@ -16,6 +17,7 @@ export class AuthConcept {
     userId: string;
     userEmail: string;
     userName: string;
+    userImage: string;
     sessionKey: string;
   }): Promise<{ authUser: AuthUserPayload } | { error: string } > {
     try {
@@ -87,6 +89,7 @@ export class AuthConcept {
         id: input.userId,
         email: input.userEmail,
         name: input.userName || "User",
+        image: input.userImage || "",
         isActive: true,
         currentContext,
         effectiveRole: role,

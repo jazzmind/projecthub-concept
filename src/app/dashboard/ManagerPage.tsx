@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useAuth, ROLES } from '@/lib/auth-context';
 
 interface DashboardStats {
   totalCampaigns: number;
@@ -15,6 +16,7 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
+  const { hasRole } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({
     totalCampaigns: 0,
     activeCampaigns: 0,
@@ -198,6 +200,26 @@ export default function DashboardPage() {
             </a>
           </div>
         </div>
+
+        {/* Platform Admin Only Section */}
+        {hasRole(ROLES.PLATFORM_ADMIN) && (
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+              Platform Administration
+            </h3>
+            <div className="grid grid-cols-1 gap-3">
+              <a 
+                href="/admin/industry-consolidation" 
+                className="btn btn-secondary text-center flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                Consolidate Industries
+              </a>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Recent Activity */}

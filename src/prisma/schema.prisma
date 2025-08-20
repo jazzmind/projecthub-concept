@@ -201,7 +201,31 @@ model Project {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
+  // Relations
+  applications       ProjectApplication[]
+
   @@map("project")
+}
+
+// Project Application model for learner applications
+model ProjectApplication {
+  id               String   @id @default(cuid())
+  projectId        String
+  applicantName    String
+  applicantEmail   String
+  applicantImage   String?
+  linkedinUrl      String
+  message          String   @db.Text
+  videoUrl         String?
+  status           String   @default("pending") // pending, approved, rejected
+  appliedAt        DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, applicantEmail]) // Prevent duplicate applications
+  @@map("project_application")
 }
 
 // Campaign concept - Generic educational campaigns

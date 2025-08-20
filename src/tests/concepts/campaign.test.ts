@@ -378,7 +378,6 @@ describe('CampaignConcept', () => {
         minDifficulty: 'intermediate',
         maxDifficulty: 'advanced',
         maxHours: 120,
-        requiredSkills: ['JavaScript', 'React', 'Node.js'],
         preferredSkills: ['TypeScript', 'GraphQL']
       };
 

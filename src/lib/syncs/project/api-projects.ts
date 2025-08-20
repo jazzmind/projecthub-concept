@@ -29,7 +29,6 @@ export function makeApiProjectSyncs(
     domain,
     difficulty,
     estimatedHours,
-    requiredSkills,
     deliverables,
     projectId
   }: Vars) => ({
@@ -45,7 +44,6 @@ export function makeApiProjectSyncs(
         domain,
         difficulty,
         estimatedHours,
-        requiredSkills,
         deliverables
       }, { request }],
     ),
@@ -80,7 +78,6 @@ export function makeApiProjectSyncs(
         domain,
         difficulty,
         estimatedHours,
-        requiredSkills,
         deliverables
       }],
     ),
@@ -165,9 +162,7 @@ export function makeApiProjectSyncs(
     learningObjectives,
     difficulty,
     estimatedHours,
-    requiredSkills,
     deliverables,
-    tags
   }: Vars) => ({
     when: actions(
       [API.request as any, { 
@@ -180,9 +175,7 @@ export function makeApiProjectSyncs(
         learningObjectives,
         difficulty,
         estimatedHours,
-        requiredSkills,
         deliverables,
-        tags
       }, { request }],
     ),
     then: actions(
@@ -194,9 +187,7 @@ export function makeApiProjectSyncs(
         learningObjectives,
         difficulty,
         estimatedHours,
-        requiredSkills,
         deliverables,
-        tags
       }],
     ),
   });

@@ -185,6 +185,7 @@ export async function authMiddleware(request: NextRequest): Promise<NextResponse
       id: session.user.id,
       email: session.user.email,
       name: session.user.name,
+      image: session.user.image,
       isAuthenticated: true
     };
 

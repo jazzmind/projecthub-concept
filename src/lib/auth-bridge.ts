@@ -36,6 +36,7 @@ export interface BetterAuthSession {
     emailVerified: boolean;
     createdAt: Date;
     updatedAt: Date;
+    image?: string;
   };
   session: {
     id: string;
@@ -70,6 +71,7 @@ export class AuthBridge {
         id: session.user.id,
         email: session.user.email,
         name: session.user.name,
+        image: session.user.image,
         isActive: true,
         currentContext,
         effectiveRole,
@@ -214,13 +216,15 @@ export class AuthBridge {
   static async getSessionInfo(request: Request): Promise<{
     hasSession: boolean;
     userId?: string;
-    email?: string;
+    email?: string; 
+    image?: string;
   }> {
     const session = await AuthBridge.getBetterAuthSession(request);
     return {
       hasSession: session !== null,
       userId: session?.user?.id,
-      email: session?.user?.email
+      email: session?.user?.email,
+      image: session?.user?.image,
     };
   }
 
@@ -234,6 +238,7 @@ export class AuthBridge {
     id: string;
     email: string;
     name: string;
+    image: string;
   } | null> {
     const session = await AuthBridge.getBetterAuthSession(request);
     if (!session) return null;
@@ -241,6 +246,7 @@ export class AuthBridge {
       id: session.user.id,
       email: session.user.email,
       name: session.user.name,
+      image: session.user.image || "",
     };
   }
 

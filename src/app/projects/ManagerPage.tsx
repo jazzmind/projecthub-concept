@@ -285,6 +285,58 @@ export default function ManagerProjectsPage() {
     }
   };
 
+  // const handleGenerateAI = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   try {
+  //     const objectives = aiFormData.learningObjectives.filter(obj => obj.trim() !== '');
+
+  //     const response = await fetch('/api/projects/generate', {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({
+  //         ...aiFormData,
+  //         learningObjectives: objectives
+  //       })
+  //     });
+
+  //     if (response.ok) {
+  //       await fetchProjects();
+  //       setShowAiForm(false);
+  //       setAiFormData({
+  //         industry: '',
+  //         domain: '',
+  //         learningObjectives: [''],
+  //         difficulty: 'beginner',
+  //         estimatedHours: 20
+  //       });
+  //     }
+  //   } catch (error) {
+  //     console.error('Failed to generate AI project:', error);
+  //   }
+  // };
+
+
+  const addArrayField = (field: keyof typeof formData, value: string = '') => {
+    const current = formData[field] as string[];
+    setFormData({
+      ...formData,
+      [field]: [...current, value]
+    });
+  };
+
+  const updateArrayField = (field: keyof typeof formData, index: number, value: string) => {
+    const current = formData[field] as string[];
+    const updated = [...current];
+    updated[index] = value;
+    setFormData({ ...formData, [field]: updated });
+  };
+
+  const removeArrayField = (field: keyof typeof formData, index: number) => {
+    const current = formData[field] as string[];
+    const updated = current.filter((_, i) => i !== index);
+    setFormData({ ...formData, [field]: updated });
+  };
+
   // No need for client-side filtering since we're doing server-side filtering
 
   if (loading) {

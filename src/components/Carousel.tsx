@@ -165,7 +165,7 @@ export default function Carousel({
             <div
               key={idx}
               data-carousel-item
-              className={`${itemWidthClass} h-[28rem] shrink-0 snap-start flex-shrink-0`}
+              className={`${itemWidthClass} h-[24rem] shrink-0 snap-start flex-shrink-0`}
             >
               {child}
             </div>

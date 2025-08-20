@@ -111,7 +111,7 @@ export abstract class AIService {
     
     this.config = {
       maxRetries: 3,
-      timeoutMs: 30000,
+      timeoutMs: 60000,
       backoffMultiplier: 2,
       enableLogging: true,
       logPrefix: this.constructor.name,

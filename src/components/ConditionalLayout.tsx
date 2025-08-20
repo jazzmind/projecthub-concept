@@ -16,7 +16,8 @@ export default function ConditionalLayout({ children }: ConditionalLayoutProps) 
   
   // Check if this is a learner route that should have no padding
   const isHomeRoute = pathname === '/';
-  const padding = isHomeRoute ? '' : 'p-6';
+  const isLoginRoute = pathname === '/login';
+  const padding = isHomeRoute || isLoginRoute ? '' : 'p-6';
   
   if (shouldShowSidebar) {
     // Manager/admin routes: with sidebar
