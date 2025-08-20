@@ -450,7 +450,7 @@ export default function HomePage() {
                   {/* AI Generated badge */}
                   <div className="absolute top-3 left-3">
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 backdrop-blur-sm">
-                      AI Generated
+                      AI Coach
                     </span>
                   </div>
                   

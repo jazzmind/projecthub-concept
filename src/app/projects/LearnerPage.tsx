@@ -374,7 +374,7 @@ export default function ProjectsPage() {
                         </span>
                           {project.aiGenerated && (
                           <span className="px-3 py-1 bg-purple-500/20 text-purple-300 text-sm rounded-full border border-purple-500/30">
-                            AI Generated
+                            AI Coach
                           </span>
                         )}
                         <span className="px-3 py-1 bg-green-500/20 text-green-300 text-sm rounded-full border border-green-500/30">

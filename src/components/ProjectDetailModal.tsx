@@ -136,7 +136,7 @@ export default function ProjectDetailModal({ project, isOpen, onClose, onUpdated
                     </span>
                     {project.aiGenerated && (
                       <span className="px-2 py-1 bg-purple-500/20 text-purple-300 text-xs rounded-full border border-purple-500/30">
-                        AI Generated
+                        AI Coach
                       </span>
                     )}
                   </div>
