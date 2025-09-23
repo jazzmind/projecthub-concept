@@ -4,23 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import ProjectDetailModal from '@/components/ProjectDetailModal';
 import { useAuth, ROLES } from '@/lib/auth-context';
+import { Project } from '@/types/project';
 
-interface Project {
-  id: string;
-  title: string;
-  image: string;
-  description: string;
-  industry: string;
-  domain: string;
-  difficulty: string;
-  estimatedHours: number;
-  deliverables: string[];
-  status: string;
-  aiGenerated: boolean;
-  createdAt: string;
-  scope?: string;
-  learningObjectives?: string[];
-}
 
 // Function to get project image based on industry/domain
 const getProjectImage = (industry: string, domain: string) => {
@@ -183,9 +168,9 @@ export default function IndustryProjectsPage() {
         <div className="max-w-7xl mx-auto">
           {projects.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {projects.map((project) => (
+              {projects.map((project, index) => (
                 <div
-                  key={project.id}
+                  key={project.id + index}
                   className="group relative bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:scale-105"
                   onClick={() => handleProjectClick(project)}
                 >

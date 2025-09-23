@@ -8,23 +8,8 @@ import ProjectApplicationModal from '@/components/ProjectApplicationModal';
 import SkeletonProjectCard, { SkeletonHeroCard } from '@/components/SkeletonProjectCard';
 import { useAuth, ROLES } from '@/lib/auth-context';
 import { demoProjects } from '@/lib/demo/projects';
+import { Project } from '@/types/project';
 
-interface Project {
-  id: string;
-  title: string;
-  image: string;
-  description: string;
-  industry: string;
-  domain: string;
-  difficulty: string;
-  estimatedHours: number;
-  deliverables: string[];
-  status: string;
-  aiGenerated: boolean;
-  createdAt: string;
-  scope?: string;
-  learningObjectives?: string[];
-}
 
 interface IndustryStats {
   industry: string;
@@ -356,7 +341,7 @@ export default function ProjectsPage() {
             
             if (allProjects.length > 0) {
               return allProjects.slice(0, 3).map((project, index) => (
-                <div key={project.id} className="hero-project">
+                <div key={project.id + index} className="hero-project">
                   <img
                     src={project.image || getProjectImage(project.industry, project.domain)}
                     alt={project.title}
@@ -428,7 +413,7 @@ export default function ProjectsPage() {
       {/* Content Sections */}
       <div className={`px-4 lg:px-8 pb-8 space-y-20 max-w-full overflow-hidden ${isViewingAsLearner ? 'pt-24' : 'pt-16'}`}>
         {/* Categories Section */}
-        <div className="space-y-20">
+        <div className="space-y-0">
           {/* Popular Projects */}
           {/* <div>
             <div className="flex items-center justify-between mb-2">
@@ -545,7 +530,7 @@ export default function ProjectsPage() {
                 // Show real projects
                 section.projects.map((project, index) => (
               <div 
-                key={project.id} 
+                key={project.id + index} 
                                    className="group relative bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:scale-105 hover:z-20 h-80 flex flex-col"
                 onClick={() => handleProjectClick(project)}
               >

@@ -399,7 +399,7 @@ export class ProjectConcept {
       // Get paginated projects
       const projects = await prisma.project.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { domain: 'asc' },
         skip: input.skip || 0,
         take: input.take || 20
       });
